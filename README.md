@@ -95,7 +95,7 @@ Click a rectangle. The right rail blows the same tape up to a readable size and 
 
 ### The four marks
 
-Drew / Rodney fashion, same merge as the 2D replica:
+Drew / Rodney fashion:
 
 ```
 C1 bit    extra    glyph     drawing
@@ -197,8 +197,6 @@ docs/screenshots/          landing shots
 tests/page.py              packing locks
 serve.sh                   local server
 ```
-
-Sister local apps (not in this repo): 2D replica on `:8765`, 3D analyzer on `:8777`.
 
 ---
 

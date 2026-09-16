@@ -52,20 +52,20 @@
     grid: "Date-day × minute, the 60×60 layout flattened into the page.",
     spoke15: "Lock chapter first (spoke 15), then the rest of the face.",
     basin: "Phrases that cadence onto 421, then the 1222 basin.",
-    ampm: "AM stamps, then PM. 12h fold lives on :8765.",
+    ampm: "AM stamps, then PM.",
     even: "Even q, then odd q.",
     loop: "LOOP depth (hops) then q — closer to lock first.",
     walkseq: "First visit along walk(q) for q=1…4966. Every post once.",
   };
   const TAPE_NOTE = {
     "c1-only": "Full post text as Code 1. Long posts squeeze more rows into the same rectangle.",
-    "triple-text": "C1 = post text. C2 = LOOP walk. C3 = HHMM→hash line. Same merge as :8765.",
+    "triple-text": "C1 = post text. C2 = LOOP walk. C3 = HHMM→hash line.",
     head8: "First eight ASCII bytes (64 glyphs). Drew’s 8×8 notebook cell, readable at page scale.",
-    chip: "One field glyph per post, same maps as :8765 disc chips.",
+    chip: "One field glyph per post (spoke-hops, ampm-lock, even-q, timehash).",
   };
   const CELL_NOTE = {
     byte: "Drew byte rows: 8 glyphs = one ASCII character, left to right, top to bottom.",
-    notebook: "8765 quads face flattened: 32 glyphs per row, outer ring = first row.",
+    notebook: "Notebook face flattened: 32 glyphs per row, outer ring = first row.",
     column: "Down the column, then the next. Same 8-wide page.",
     boustrophedon: "Ox-plow: even rows L→R, odd rows R→L.",
     spiral: "Square spiral from the outside in.",
