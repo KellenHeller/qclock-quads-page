@@ -11,6 +11,83 @@ ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "data" / "corpus.json"
 
 
+FOLD = {
+    0x2018: "'",
+    0x2019: "'",
+    0x201C: '"',
+    0x201D: '"',
+    0x2013: "-",
+    0x2014: "-",
+    0x2015: "-",
+    0x2026: "...",
+    0x2002: " ",
+}
+SPACE_BITS = [0, 0, 1, 0, 0, 0, 0, 0]
+
+
+def ascii_to_bits(s: str) -> list[int]:
+    bits: list[int] = []
+    i = 0
+    while i < len(s):
+        cp = ord(s[i])
+        if cp > 0xFFFF:
+            i += 1
+        chunk = FOLD.get(cp)
+        if chunk is None:
+            chunk = "?" if cp > 255 else chr(cp)
+        for ch in chunk:
+            b = ord(ch) & 0xFF
+            for k in range(7, -1, -1):
+                bits.append((b >> k) & 1)
+        i += 1
+    return bits
+
+
+def encode_triple_text(post: dict, posts: list[dict]) -> list[int]:
+    by_q = {p["q"]: p for p in posts}
+    has_q = set(by_q)
+    text = str(post.get("text") or "").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"').replace("&#39;", "'").replace("&nbsp;", " ")
+    path: list[int] = []
+    seen: set[int] = set()
+    cur = int(post["q"])
+    for _ in range(16):
+        path.append(cur)
+        if cur in seen:
+            break
+        seen.add(cur)
+        nxt = by_q.get(cur, {}).get("next")
+        if nxt is None or nxt not in by_q:
+            break
+        cur = int(nxt)
+    hh, mm = int(post["hh"]), int(post["mm"])
+    n = hh * 100 + mm
+    n12 = ((hh + 12) % 24) * 100 + mm
+    a = str(n) if n in has_q else "—"
+    b = str(n12) if n12 in has_q else "—"
+    stamp = f"{hh:02d}{mm:02d}→{a}/{b}"
+    c1 = ascii_to_bits(text)
+    c2 = ascii_to_bits("→".join(str(x) for x in path))
+    c3 = ascii_to_bits(stamp)
+    while True:
+        zeros = sum(1 for x in c1 if not x)
+        ones = sum(1 for x in c1 if x)
+        if zeros >= len(c2) and ones >= len(c3):
+            break
+        c1.extend(SPACE_BITS)
+    glyphs: list[int] = []
+    i2 = i3 = 0
+    for bit in c1:
+        if bit:
+            extra = c3[i3] if i3 < len(c3) else 0
+            i3 += 1
+            glyphs.append(3 if extra else 2)
+        else:
+            extra = c2[i2] if i2 < len(c2) else 0
+            i2 += 1
+            glyphs.append(1 if extra else 0)
+    return glyphs
+
+
 def cell_spec(kind: str, n_glyphs: int, packed: bool = False) -> dict:
     n = max(1, int(n_glyphs))
     hide = bool(packed)
@@ -248,6 +325,32 @@ def main() -> int:
     check(544 in blank_q and 550 in blank_q, "544 and 550 are solid/blank")
     check('id="hide-solid"' in html, "hide solid checkbox")
     check("hideSolid" in js and "isSolidPost" in js, "hide solid wiring")
+
+    p3414 = next(p for p in posts if p["q"] == 3414)
+    check(p3414["date"] == "2019-07-11", f"3414 date {p3414['date']}")
+    check((p3414["hh"], p3414["mm"], p3414["ss"]) == (0, 25, 45), "3414 stamp")
+    check(p3414["spoke"] == 41 and p3414["hops"] == 6 and p3414["next"] == 711, "3414 loop")
+    text_3414 = str(p3414.get("text") or "")
+    check("Only Anons can fully appreciate" in text_3414, "3414 c1 text")
+    check("[Wheels up]" in text_3414, "3414 wheels up")
+    glyphs_3414 = encode_triple_text(p3414, posts)
+    check(len(glyphs_3414) == 1624, f"3414 glyphs {len(glyphs_3414)}")
+    spec_3414 = cell_spec("cross", len(glyphs_3414))
+    check(spec_3414["cols"] == 10 and spec_3414["rows"] == 163, f"3414 cell {spec_3414}")
+    kinds = {g for g in glyphs_3414}
+    check(kinds == {0, 1, 2, 3}, f"3414 four inks {kinds}")
+    check(glyphs_3414.count(1) > 0 and glyphs_3414.count(3) > 0, "3414 extra-bit fills")
+    check('value="3414"' in html, "default selected 3414")
+    check('value="ebs" selected' in html, "default ebs theme")
+    check('value="toast" selected' in html, "default toast paint")
+    check('value="cross" selected' in html, "default cross cell")
+    check('value="triple-text" selected' in html, "default triple-text tape")
+    check('id="hide-empty" type="checkbox" checked' in html, "default hide empty")
+    check('id="hide-solid" type="checkbox" checked' in html, "default hide solid")
+    check('id="gaps" type="checkbox" checked' not in html, "default gaps off")
+    check('selected: 3414' in js and 'cell: "cross"' in js and 'tape: "triple-text"' in js, "js defaults match 3414")
+    check('theme: "ebs"' in js and 'ebsPaint: "toast"' in js, "js default ebs toast")
+    check("gaps: false" in js and "hideEmpty: true" in js and "hideSolid: true" in js, "js default hide empty/solid, no gaps")
 
     if errors:
         print("FAIL")

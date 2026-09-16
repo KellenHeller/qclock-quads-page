@@ -86,20 +86,20 @@
     tapes: null,
     grid: null,
     cells: [],
-    selected: 421,
+    selected: 3414,
     hover: null,
     order: "q",
     weave: "raster",
-    cell: "byte",
-    tape: "c1-only",
+    cell: "cross",
+    tape: "triple-text",
     chips: "spoke-hops",
     color: "off",
-    theme: "phosphor",
-    ebsPaint: "meaning",
-    gaps: true,
+    theme: "ebs",
+    ebsPaint: "toast",
+    gaps: false,
     labels: false,
-    hideEmpty: false,
-    hideSolid: false,
+    hideEmpty: true,
+    hideSolid: true,
     atlas: null,
     dirty: true,
     packing: false,
@@ -469,7 +469,6 @@
     blitCtx.putImageData(img, 0, 0);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(blitScratch, 0, 0, cols, rows, x, y, w, h);
-    ctx.imageSmoothingEnabled = true;
   }
 
   function drawTapeInRect(ctx, x, y, w, h, glyphs, cellKind, paint) {
@@ -483,7 +482,11 @@
     const spec = globalThis.QuadPage.cellSpec(cellKind, n, state.hideEmpty);
     const gw = w / spec.cols;
     const gh = h / spec.rows;
-    if (n > 64 || gw < 3 || gh < 3) {
+    // Page-scale overview stays a 1px blit. The inspector peek is large
+    // enough to draw real squares/bars — required for Toast, where the
+    // four hex inks otherwise collapse into two muddy bands.
+    const tiny = gw < 3 || gh < 3;
+    if (tiny || (n > 64 && !toastOn())) {
       blitTape(ctx, x, y, w, h, glyphs, spec, ctxp);
       return;
     }
@@ -592,9 +595,18 @@
   function paintPeek(p) {
     const cv = $("peek");
     if (!cv) return;
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const w = Math.max(8, cv.clientWidth || cv.width || 300);
+    const h = Math.max(8, cv.clientHeight || cv.height || 220);
+    const bw = Math.max(1, Math.floor(w * dpr));
+    const bh = Math.max(1, Math.floor(h * dpr));
+    if (cv.width !== bw || cv.height !== bh) {
+      cv.width = bw;
+      cv.height = bh;
+    }
     const ctx = cv.getContext("2d");
-    const w = cv.width;
-    const h = cv.height;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = state.theme === "ebs" ? "#6a6a6a" : THEME.stage;
     ctx.fillRect(0, 0, w, h);
     if (!p) return;

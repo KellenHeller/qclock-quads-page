@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="phosphor">
+<html lang="en" data-theme="ebs">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Four-symbol page — Q posts as rectangles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/page.css?v=20260914d" />
+  <link rel="stylesheet" href="css/page.css?v=20260916b" />
 </head>
-<body data-theme="phosphor">
+<body data-theme="ebs" data-paint="toast">
   <header>
     <h1>Four-symbol page</h1>
     <div class="meta" id="banner-meta">loading corpus…</div>
@@ -48,7 +48,7 @@
       </label>
       <p class="note" id="order-note">Sequential q fills the page left to right, top to bottom.</p>
       <label class="row">#q
-        <input id="qnum" type="number" min="1" max="4966" value="421" />
+        <input id="qnum" type="number" min="1" max="4966" value="3414" />
       </label>
       <div class="btns">
         <button id="go" type="button">Select</button>
@@ -59,7 +59,7 @@
       <p class="note">Drew/Rodney: square/bar = Code 1 (ASCII). Fill on squares = Code 2. Fill on bars = Code 3.</p>
       <label class="row">Cell
         <select id="cell">
-          <option value="byte" selected>Byte rows (8-wide)</option>
+          <option value="byte">Byte rows (8-wide)</option>
           <option value="notebook">Notebook 32-wide</option>
           <option value="column">Column-major 8-wide</option>
           <option value="boustrophedon">Boustrophedon 8-wide</option>
@@ -67,13 +67,13 @@
           <option value="weeks">Weeks (7-wide)</option>
           <option value="square">Nearest square</option>
           <option value="fish">Fish frame 8×14</option>
-          <option value="cross">Cross frame 10×10</option>
+          <option value="cross" selected>Cross frame 10×10</option>
         </select>
       </label>
       <label class="row">Tape
         <select id="tape">
-          <option value="c1-only" selected>C1 ASCII (full post)</option>
-          <option value="triple-text">Triple-text (LOOP + stamp)</option>
+          <option value="c1-only">C1 ASCII (full post)</option>
+          <option value="triple-text" selected>Triple-text (LOOP + stamp)</option>
           <option value="head8">Head 8 bytes (8×8)</option>
           <option value="chip">Field chip (1 glyph)</option>
         </select>
@@ -91,20 +91,20 @@
       <h2>Read</h2>
       <label class="row">Theme
         <select id="theme">
-          <option value="phosphor" selected>Phosphor (CRT lime)</option>
+          <option value="phosphor">Phosphor (CRT lime)</option>
           <option value="volt">Volt (hazard yellow)</option>
           <option value="magma">Magma</option>
           <option value="ion">Ion (blue / magenta)</option>
-          <option value="ebs">EBS (please stand by)</option>
+          <option value="ebs" selected>EBS (please stand by)</option>
           <option value="paper">Paper (light)</option>
           <option value="oak">Oak (original)</option>
         </select>
       </label>
       <label class="row" id="ebs-paint-row">EBS paint
         <select id="ebs-paint">
-          <option value="meaning" selected>Meaning (C1 + hops)</option>
+          <option value="meaning">Meaning (C1 + hops)</option>
           <option value="spectrum">Spectrum (cycle 9)</option>
-          <option value="toast">Toast #901131</option>
+          <option value="toast" selected>Toast #901131</option>
         </select>
       </label>
       <label class="row">Color
@@ -115,10 +115,10 @@
           <option value="basin">Lock basin</option>
         </select>
       </label>
-      <label class="row"><span>Cell gaps</span><input id="gaps" type="checkbox" checked /></label>
+      <label class="row"><span>Cell gaps</span><input id="gaps" type="checkbox" /></label>
       <label class="row"><span>q labels</span><input id="labels" type="checkbox" /></label>
-      <label class="row"><span>Hide empty slots</span><input id="hide-empty" type="checkbox" /></label>
-      <label class="row"><span>Hide solid squares</span><input id="hide-solid" type="checkbox" /></label>
+      <label class="row"><span>Hide empty slots</span><input id="hide-empty" type="checkbox" checked /></label>
+      <label class="row"><span>Hide solid squares</span><input id="hide-solid" type="checkbox" checked /></label>
       <div class="legend">
         <span class="swatch-code"><i class="swatch sq0"></i>sq0</span>
         <span class="swatch-code"><i class="swatch sq1"></i>sq1</span>
@@ -147,8 +147,8 @@
       <div id="inspect-text">—</div>
     </aside>
   </div>
-  <script src="js/quads.js?v=20260914d"></script>
-  <script src="js/layouts.js?v=20260914d"></script>
-  <script src="js/page.js?v=20260914d"></script>
+  <script src="js/quads.js?v=20260916b"></script>
+  <script src="js/layouts.js?v=20260916b"></script>
+  <script src="js/page.js?v=20260916b"></script>
 </body>
 </html>
