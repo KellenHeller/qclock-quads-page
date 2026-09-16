@@ -10,15 +10,15 @@
 [![Default](https://img.shields.io/badge/default-3414%20EBS%20toast-903111.svg)](#default-view)
 
 <p align="center">
-  <strong><a href="https://ogdonny.github.io/qclock-quads-page/">Open the live page</a></strong>
+  <strong><a href="https://kellenheller.github.io/qclock-quads-page/">Open the live page</a></strong>
   ·
-  <a href="https://ogdonny.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=toast&gaps=0&hide=1&solid=1">Toast</a>
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=toast&gaps=0&hide=1&solid=1">Toast</a>
   ·
-  <a href="https://ogdonny.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=meaning&gaps=0&hide=1&solid=1">Meaning</a>
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=meaning&gaps=0&hide=1&solid=1">Meaning</a>
   ·
-  <a href="https://ogdonny.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=spectrum&gaps=0&hide=1&solid=1">Spectrum</a>
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=spectrum&gaps=0&hide=1&solid=1">Spectrum</a>
   ·
-  <a href="https://ogdonny.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=paper&gaps=0&hide=1&solid=1">Paper</a>
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=paper&gaps=0&hide=1&solid=1">Paper</a>
 </p>
 
 One canvas. Every Q post as its own Drew/Rodney rectangle. All **4,966** fit on a single page.
@@ -69,12 +69,12 @@ Toast inks — one hex per mark:
 Same tape, four paints. Click a shot to open that view.
 
 <p align="center">
-  <a href="https://ogdonny.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=toast&gaps=0&hide=1&solid=1"><img src="docs/screenshots/hero-toast.png" alt="EBS toast" width="48%"></a>
-  <a href="https://ogdonny.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=meaning&gaps=0&hide=1&solid=1"><img src="docs/screenshots/hero-meaning.png" alt="EBS meaning" width="48%"></a>
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=toast&gaps=0&hide=1&solid=1"><img src="docs/screenshots/hero-toast.png" alt="EBS toast" width="48%"></a>
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=meaning&gaps=0&hide=1&solid=1"><img src="docs/screenshots/hero-meaning.png" alt="EBS meaning" width="48%"></a>
 </p>
 <p align="center">
-  <a href="https://ogdonny.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=spectrum&gaps=0&hide=1&solid=1"><img src="docs/screenshots/hero-spectrum.png" alt="EBS spectrum" width="48%"></a>
-  <a href="https://ogdonny.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=paper&gaps=0&hide=1&solid=1"><img src="docs/screenshots/hero-paper.png" alt="Paper theme" width="48%"></a>
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=spectrum&gaps=0&hide=1&solid=1"><img src="docs/screenshots/hero-spectrum.png" alt="EBS spectrum" width="48%"></a>
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=paper&gaps=0&hide=1&solid=1"><img src="docs/screenshots/hero-paper.png" alt="Paper theme" width="48%"></a>
 </p>
 
 <p align="center">
@@ -168,12 +168,12 @@ State lives in the URL hash, so a view is shareable.
 No build step. Python 3 is only the local server (and the tests).
 
 ```bash
-git clone git@github.com:ogdonny/qclock-quads-page.git
+git clone git@github.com:KellenHeller/qclock-quads-page.git
 cd qclock-quads-page
 python3 -m http.server 8558 --bind 127.0.0.1
 ```
 
-Then open [http://127.0.0.1:8558/](http://127.0.0.1:8558/), or skip the clone and use the [live demo](https://ogdonny.github.io/qclock-quads-page/).
+Then open [http://127.0.0.1:8558/](http://127.0.0.1:8558/), or skip the clone and use the [live demo](https://kellenheller.github.io/qclock-quads-page/).
 
 ```bash
 python3 tests/page.py
