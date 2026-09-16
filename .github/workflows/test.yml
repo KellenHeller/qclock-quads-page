@@ -13,10 +13,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
       - name: Four-symbol packing
         run: python3 tests/page.py
-      - name: 9-symbol codec + teaching facts
-        run: python3 tests/vortex.py

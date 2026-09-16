@@ -14,9 +14,8 @@
     <div class="meta" id="banner-meta">loading corpus…</div>
     <div class="meta">grid <b id="grid-readout">—</b></div>
     <div class="meta">selected <b id="sel-readout">—</b></div>
-    <a class="ghost" href="vortex.html" title="Digit / vortex page">Digits</a>
-    <a class="ghost local-only" href="http://127.0.0.1:8765/" title="Loop Code Visualizer">2D :8765</a>
-    <a class="ghost local-only" href="http://127.0.0.1:8777/" title="3D analyzer">3D :8777</a>
+    <a class="ghost" href="http://127.0.0.1:8765/" title="Loop Code Visualizer">2D :8765</a>
+    <a class="ghost" href="http://127.0.0.1:8777/" title="3D analyzer">3D :8777</a>
   </header>
   <div class="shell">
     <aside class="left">
@@ -148,13 +147,6 @@
       <div id="inspect-text">—</div>
     </aside>
   </div>
-  <script>
-    (function () {
-      var host = location.hostname;
-      if (host === "127.0.0.1" || host === "localhost") return;
-      document.querySelectorAll("a.local-only").forEach(function (a) { a.hidden = true; });
-    })();
-  </script>
   <script src="js/quads.js?v=20260914d"></script>
   <script src="js/layouts.js?v=20260914d"></script>
   <script src="js/page.js?v=20260914d"></script>

@@ -9,3 +9,11 @@ __pycache__/
 .direnv/
 .env
 .env.*
+
+# Local-only 9-symbol tab — not part of the public four-symbol snapshot
+vortex.html
+css/vortex.css
+js/vortex.js
+js/vortex-page.js
+data/vortex-teaching.json
+tests/vortex.py

@@ -5,43 +5,43 @@
 [![Corpus](https://img.shields.io/badge/Q%20posts-4%2C966-d8ff9a.svg)](#the-corpus)
 [![Tests](https://github.com/ogdonny/qclock-quads-page/actions/workflows/test.yml/badge.svg)](https://github.com/ogdonny/qclock-quads-page/actions/workflows/test.yml)
 
-**Live demo:** [ogdonny.github.io/qclock-quads-page](https://ogdonny.github.io/qclock-quads-page/) · [Digits / vortex tab](https://ogdonny.github.io/qclock-quads-page/vortex.html)
+**Live demo:** [ogdonny.github.io/qclock-quads-page](https://ogdonny.github.io/qclock-quads-page/)
 
-One canvas. Every Q post as its own rectangle. All **4,966** fit on a single page.
+One canvas. Every Q post as its own Drew/Rodney rectangle. All **4,966** fit on a single page.
 
-This is an **independent packing** of a public catalog — not a claim that Q wrote four-symbols, vortex math, or anything else in this codec.
+This is an **independent packing** of a public catalog — not a claim that Q wrote quads.
 
-![Four-symbol page — all 4,966 posts as rectangles](docs/screenshots/four-symbol.png)
+EBS toast (glyph = hex) and EBS meaning (square/bar + hops rainbow) of the same tape:
+
+![EBS toast — four-symbol hex inks](docs/screenshots/ebs-toast.png)
+
+![EBS meaning — filled square / filled bar / rainbow hollow](docs/screenshots/ebs-meaning.png)
+
+Open those views directly:
+
+- [Toast](https://ogdonny.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=toast)
+- [Meaning](https://ogdonny.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=meaning)
 
 ---
 
 ## What you are looking at
 
-Each cell on the page is one post (`q = 1 … 4966`). Inside that cell is a **tape**: the post’s text, plus optional extra channels, drawn with a tiny alphabet.
-
-There are two alphabets, two documents, one corpus:
-
-| Tab | File | Alphabet | What a mark means |
-| --- | --- | --- | --- |
-| **Four-symbol** | [`index.html`](index.html) | square / bar × solid / hollow | Code 1 is a **bit**. Shape = ASCII bit. Fill = extra bit. |
-| **Digits / vortex** | [`vortex.html`](vortex.html) | 10 digit shapes × solid / hollow | Code 1 is a **digit 0–9**. Shape = digit. Fill = extra bit. |
+Each cell on the page is one post (`q = 1 … 4966`). Inside that cell is a **tape**: the post’s text, plus optional extra channels, drawn with four marks.
 
 Click a rectangle. The right rail blows the same tape up to a readable size and prints the recovered C1 ASCII. Arrow keys walk the page.
 
-![9-symbol page — same grid, digit alphabet](docs/screenshots/nine-symbol.png)
-
 ---
 
-## Four-symbol codec
+## The four marks
 
-Drew / Rodney fashion, same merge as the 2D replica:
+Drew / Rodney fashion, same merge as the 2D replica on `:8765`:
 
 ```
 C1 bit    extra    glyph     drawing
 0         0        sq0       filled square
 0         1        sq1       hollow square
-1         0        bar0      filled bar
-1         1        bar1      hollow (double) bar
+1         0        bar0      filled vertical bar
+1         1        bar1      hollow / double vertical bar
 ```
 
 Two channels, one mark:
@@ -55,42 +55,21 @@ Space bytes (`00100000`) pad Code 1 until there are enough zeros for Code 2 and 
 
 Default tape is **C1 ASCII (full post)** — eight glyphs per character, left to right, top to bottom. Long posts squeeze more rows into the same rectangle so the *page* still holds every post.
 
+**Triple-text** (the views in the screenshots): C1 = post text, C2 = LOOP walk, C3 = HHMM→hash line. Same merge as `:8765`.
+
 ---
 
-## Digit / vortex codec
+## EBS paints
 
-Same two-channel idea, upgraded. C1 is no longer a bit; it is a digit `0–9`. Extra stays a bit. Alphabet size: **10 × 2 = 20 glyphs**.
+Theme **EBS** (“please stand by”) has three paints. These are overlays. They do not change the tape.
 
-| Digit | Solid | Hollow | Shape | Polar mate | Orbit |
-| ---: | --- | --- | --- | ---: | --- |
-| 0 | `d0` | `d0h` | ring + center dot (the hole) | 9 | hole |
-| 1 | `sq0` | `sq1` | **square** (kept from four-symbol) | 8 | doubling |
-| 2 | `ch2` | `ch2h` | chevron out | 7 | doubling |
-| 3 | `tr3` | `tr3h` | open triangle | 6 | flux |
-| 4 | `bar0` | `bar1` | **bar** (kept from four-symbol) | 5 | doubling |
-| 5 | `bar5` | `bar5h` | bar, second stroke | 4 | doubling |
-| 6 | `tr6` | `tr6h` | open triangle | 3 | flux |
-| 7 | `ch7` | `ch7h` | chevron in | 2 | doubling |
-| 8 | `sq8` | `sq8h` | square on the diagonal | 1 | doubling |
-| 9 | `ax9` | `ax9h` | empty ring (axis) | 9 / 0 | axis |
+| Paint | What you see |
+| --- | --- |
+| **Meaning** | C1 white/black (filled square white, filled bar black). Hollow marks take the hops rainbow. |
+| **Spectrum** | Every glyph walks ROYGBIV + white + black. Cell band follows the header stripe. |
+| **Toast** | Four-symbol hex: sq0 `#901131` · sq1 `#319011` · bar0 `#113190` · bar1 `#903111`. Cell ground `#901171`. |
 
-Digits **1** and **4** reuse the four-symbol square and bar so the two pages stay visually related. Polar pairs sum to 9. Digital root is residue mod 9, with multiples of 9 written as **9** (and raw 0 kept as the hole).
-
-×2 on ℤ/9ℤ splits the nine nonzero digits into three orbits:
-
-| Orbit | Sequence | Role on this tab |
-| --- | --- | --- |
-| Doubling circuit | `1 → 2 → 4 → 8 → 7 → 5 → 1` | The thing that **moves** |
-| Flux / gap | `3 ↔ 6` | The thing that **governs** |
-| Axis | `9 → 9` | Still-point / pad |
-
-Family groups (add 3 to walk forward): **1-4-7**, **2-5-8**, **3-6-9**.
-
-Default tape writes each ASCII byte as **three decimal digits** — 3 glyphs per character, the digit analogue of 8 four-symbol glyphs per character.
-
-The **Teach** view on the digit tab is a legend, not the packing: 9 at the top, 0 in the hole, 3-6-9 as an open vector, and Q post **421** as the worked example (`dr(421) = dr(1222) = 7`, letter `Q` = 81 → 9, spoke 15 → 6).
-
-![Teach view — fingerprint circle and 421](docs/screenshots/teach-421.png)
+Other themes: Phosphor (CRT lime), Volt, Magma, Ion, Paper, Oak.
 
 ---
 
@@ -114,13 +93,11 @@ Depth is at most 6. There is no second sink. Display timezone and hash timezone 
 | Lock spoke | 15 |
 | Max hops to lock | 6 |
 
-The four-symbol page can color cells by hops-to-lock, AM/PM, or which basin the walk falls into. The digit page can color by orbit, family, or polar pair. Those paints are **overlays**. They do not change the tape.
+The page can also color cells by hops-to-lock, AM/PM, or which basin the walk falls into (`Color` in the left rail). Those paints are overlays too.
 
 ---
 
 ## Controls
-
-Shared on both tabs unless noted.
 
 **Page order** — how the 4,966 rectangles are sequenced onto the grid:
 
@@ -131,32 +108,25 @@ Shared on both tabs unless noted.
 | Replica date | Unique posting date, then q |
 | Spoke | Clock spoke 0–59 |
 | Hops to lock | Depth to 421↔1222, shallow first |
-| Time face | Hour, then minute, then second *(four-symbol)* |
-| Date × minute | 60×60 layout flattened *(four-symbol)* |
-| Spoke 15 first | Lock chapter, then the rest *(four-symbol)* |
+| Time face | Hour, then minute, then second |
+| Date × minute | 60×60 layout flattened |
+| Spoke 15 first | Lock chapter, then the rest |
 | Lock basin | Walks that cadence onto 421, then 1222 |
 | AM / PM, even/odd q, LOOP depth, walk-first-visit | as labeled |
-| Family / orbit | Digit tab: `1-4-7 / 2-5-8 / 3-6-9` and doubling / flux / axis |
 
 **Weave** — how that sequence fills the page: raster, boustrophedon (ox-plow), spiral (outer → in), columns.
 
-**Cell packing** — how one post’s tape is laid out *inside* its rectangle: 8-wide byte rows, 32-wide notebook, column-major, boustrophedon, square spiral, weeks (7), nearest square, 8×14 fish frame, 10×10 cross frame. Digit tab adds 3-wide (one byte) and 9-wide (three bytes).
+**Cell packing** — how one post’s tape is laid out *inside* its rectangle: 8-wide byte rows, 32-wide notebook, column-major, boustrophedon, square spiral, weeks (7), nearest square, 8×14 fish frame, 10×10 cross frame.
 
-**Tape**
-
-*Four-symbol:* C1 ASCII (full post) · triple-text (LOOP + stamp as extra channels) · head 8 bytes · field chip (`spoke-hops` / `ampm-lock` / `even-q` / `timehash`).
-
-*Digits:* C1 digits (full post) · head 8 bytes · `q + date-key + HHMMSS` · family chip `dr(q)` · four-symbol glyphs painted by byte-root.
-
-**Theme:** Phosphor (default CRT lime), Volt, Magma, Ion, EBS, Paper, Oak. EBS has a paint toggle: meaning / spectrum / toast.
+**Tape:** C1 ASCII (full post) · triple-text (LOOP + stamp as extra channels) · head 8 bytes · field chip (`spoke-hops` / `ampm-lock` / `even-q` / `timehash`).
 
 **Toggles:** cell gaps · q labels · hide empty leftover slots · hide solid squares (image-only / blank posts such as 544 and 550).
 
 State is stored in the URL hash, so a view is shareable:
 
 ```
+index.html#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=toast
 index.html#q=421&order=basin&theme=phosphor
-vortex.html#q=421&view=teach&color=orbit
 ```
 
 ---
@@ -171,7 +141,7 @@ cd qclock-quads-page
 python3 -m http.server 8558 --bind 127.0.0.1
 ```
 
-Then open [http://127.0.0.1:8558/](http://127.0.0.1:8558/) and [http://127.0.0.1:8558/vortex.html](http://127.0.0.1:8558/vortex.html).
+Then open [http://127.0.0.1:8558/](http://127.0.0.1:8558/).
 
 `./serve.sh` does the same thing, and on this machine will prefer the systemd unit `qclock-quads-page.service` if it is installed.
 
@@ -182,16 +152,10 @@ Or skip the clone and use the [live GitHub Pages demo](https://ogdonny.github.io
 ## Tests
 
 ```bash
-python3 tests/page.py      # four-symbol fit / weave / Drew packing
-python3 tests/vortex.py    # 9-symbol codec, 421 teaching facts, JS round-trip
+python3 tests/page.py
 ```
 
-Frozen facts the digit tests pin down (among others):
-
-- `dr(421) = dr(1222) = 7`, `dr(1221) = 6`, `dr(0) = 0`
-- Polar pairs are involutions summing to 9
-- `"Test.\nQ"` byte-roots are `3 2 7 8 1 1 9` (letter Q is axis 9)
-- ASCII ↔ three-digit tape round-trips
+Locks fit / weave / Drew cell packing, toast hex, hide-empty / hide-solid, and the 4,966 sequential catalog.
 
 ---
 
@@ -199,24 +163,19 @@ Frozen facts the digit tests pin down (among others):
 
 ```
 index.html                 four-symbol page
-vortex.html                9-symbol / vortex page
-css/page.css               shared CRT chrome + themes
-css/vortex.css             digit inks, tab nav, teach layout
+css/page.css               CRT chrome + themes (including EBS toast hex)
 js/quads.js                four-symbol codec (pure functions, no DOM)
 js/layouts.js              rectangle packing / weaves
 js/page.js                 four-symbol app
-js/vortex.js               digit codec (own digital-root helper)
-js/vortex-page.js          digit app
 data/corpus.json           4,966 posts + LOOP meta
-data/quads-teaching.json   four-symbol teaching fixture
-data/vortex-teaching.json  421 teaching fixture
-tests/                     packing + codec locks
+data/quads-teaching.json   teaching fixture
+tests/page.py              packing locks
 serve.sh                   local server
 ```
 
-The codec files are **pure**. They do not touch the DOM. The page scripts fetch `data/corpus.json` and blit glyphs onto a canvas so the whole catalog stays on one screen.
+The codec is **pure**. It does not touch the DOM. The page script fetches `data/corpus.json` and blits glyphs onto a canvas so the whole catalog stays on one screen.
 
-Sister local apps (not in this repo): 2D replica on `:8765`, 3D analyzer on `:8777`. Header links to those only appear when you are on localhost.
+Sister local apps (not in this repo): 2D replica on `:8765`, 3D analyzer on `:8777`.
 
 ---
 
@@ -230,10 +189,7 @@ It is included so the demo runs with zero extra fetches. Treat it as **research 
 
 ## What this is not
 
-- Not a claim that Q designed four-symbols, Rodin / vortex mathematics, or this page.
-- Not a claim that `3 ↔ 6` is `421 ↔ 1222`, or that 9 is *c*. Those are different objects that can be **drawn together**.
-- Not a physics or overunity argument. The digit tab uses the *arithmetic* of digital roots and ×2 mod 9. It refuses the cosmology.
-- Base-10 is the catalog’s writing system, not a cosmic primitive. In another base the cycle is mod *(b − 1)*.
+Not a claim that Q designed four-symbols or this page. It is a packing of a public catalog in Drew/Rodney’s four marks.
 
 ---
 
