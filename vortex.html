@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="phosphor">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>9-symbol page — Q posts as rectangles</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/page.css?v=20260914d" />
+  <link rel="stylesheet" href="css/vortex.css?v=20260914v2" />
+</head>
+<body data-theme="phosphor" data-view="page">
+  <header>
+    <nav class="tab-nav" aria-label="8558 tabs">
+      <a id="four-link" href="index.html#q=421">Four-symbol</a>
+      <span class="current">9-symbol</span>
+    </nav>
+    <h1>9-symbol page</h1>
+    <div class="meta" id="banner-meta">loading corpus…</div>
+    <div class="meta">grid <b id="grid-readout">—</b></div>
+    <div class="meta">selected <b id="sel-readout">#421</b></div>
+  </header>
+  <div class="shell">
+    <aside class="left">
+      <h2>Page</h2>
+      <p class="note">Each post is one rectangle packed as 9-symbol digits (0–9, solid/hollow). All 4,966 fit here — same page as four-symbol, different alphabet. Independent packing.</p>
+      <label class="row">View
+        <select id="view">
+          <option value="page" selected>Page (4,966 rectangles)</option>
+          <option value="teach">Teach (circle)</option>
+        </select>
+      </label>
+      <label class="row teach-only">Stage
+        <select id="stage">
+          <option value="fingerprint" selected>Fingerprint circle</option>
+          <option value="hourglass">Hourglass</option>
+        </select>
+      </label>
+      <label class="row">Order
+        <select id="order">
+          <option value="q" selected>Sequential q (1…4966)</option>
+          <option value="ts">Timestamp</option>
+          <option value="date">Replica date</option>
+          <option value="spoke">Spoke 0–59</option>
+          <option value="hops">Hops to lock</option>
+          <option value="basin">Lock basin 421 / 1222</option>
+          <option value="walkseq">Walk-first-visit</option>
+          <option value="family">Family 1-4-7 / 2-5-8 / 3-6-9</option>
+          <option value="orbit">Orbit doubling / flux / axis</option>
+        </select>
+      </label>
+      <label class="row">Weave
+        <select id="weave">
+          <option value="raster" selected>Raster L→R, T→B</option>
+          <option value="boustrophedon">Boustrophedon (ox-plow)</option>
+          <option value="spiral">Spiral (outer → in)</option>
+          <option value="columns">Columns (down, then next)</option>
+        </select>
+      </label>
+      <p class="note" id="order-note">Sequential q fills the page left to right, top to bottom.</p>
+      <label class="row">#q
+        <input id="qnum" type="number" min="1" max="4966" value="421" />
+      </label>
+      <div class="btns">
+        <button id="go" type="button">Select</button>
+        <button class="ghost" id="fit" type="button">Refit page</button>
+      </div>
+      <p class="note" id="view-note">Each rectangle is the selected post’s 9-symbol tape.</p>
+
+      <h2>Rectangle</h2>
+      <p class="note">Digit = Code 1 (0–9). Fill = extra bit (even digits Code 2, odd digits Code 3). Default tape writes each ASCII byte as three decimal digits — 3 glyphs per character, same role as 8 four-symbol glyphs per character.</p>
+      <label class="row">Cell
+        <select id="cell">
+          <option value="digit3" selected>Byte rows (3-wide)</option>
+          <option value="digit9">Three bytes (9-wide)</option>
+          <option value="byte">8-wide (four-symbol grid)</option>
+          <option value="notebook">Notebook 32-wide</option>
+          <option value="column">Column-major</option>
+          <option value="boustrophedon">Boustrophedon</option>
+          <option value="spiral">Square spiral</option>
+          <option value="weeks">Weeks (7-wide)</option>
+          <option value="square">Nearest square</option>
+          <option value="fish">Fish frame 8×14</option>
+          <option value="cross">Cross frame 10×10</option>
+        </select>
+      </label>
+      <label class="row">Tape
+        <select id="tape">
+          <option value="decimal" selected>C1 digits (full post)</option>
+          <option value="head8">Head 8 bytes (24 glyphs)</option>
+          <option value="q-digits">q + date-key + HHMMSS</option>
+          <option value="family-chip">Field chip dr(q)</option>
+          <option value="byte-root">Four-symbol painted by byte-root</option>
+        </select>
+      </label>
+      <p class="note" id="tape-note">Full post text as three decimal digits per ASCII byte. Long posts squeeze more rows into the same rectangle.</p>
+
+      <h2>Read</h2>
+      <label class="row">Theme
+        <select id="theme">
+          <option value="phosphor" selected>Phosphor (CRT lime)</option>
+          <option value="volt">Volt (hazard yellow)</option>
+          <option value="magma">Magma</option>
+          <option value="ion">Ion (blue / magenta)</option>
+          <option value="ebs">EBS (please stand by)</option>
+          <option value="paper">Paper (light)</option>
+          <option value="oak">Oak (original)</option>
+        </select>
+      </label>
+      <label class="row">Color
+        <select id="color">
+          <option value="off" selected>Off (digit ink)</option>
+          <option value="orbit">Orbit (doubling / flux / axis / hole)</option>
+          <option value="family">Family (1-4-7 / 2-5-8 / 3-6-9)</option>
+          <option value="polar">Polar pair</option>
+        </select>
+      </label>
+      <label class="row"><span>Cell gaps</span><input id="gaps" type="checkbox" checked /></label>
+      <label class="row"><span>q labels</span><input id="labels" type="checkbox" /></label>
+      <label class="row"><span>Hide empty slots</span><input id="hide-empty" type="checkbox" /></label>
+      <label class="row"><span>Hide solid squares</span><input id="hide-solid" type="checkbox" /></label>
+      <label class="row teach-only"><span>Paper legend (claimed)</span><input id="gita" type="checkbox" /></label>
+      <div class="legend">
+        <span><i class="swatch d0"></i>0</span>
+        <span><i class="swatch d1"></i>1 sq</span>
+        <span><i class="swatch d2"></i>2</span>
+        <span><i class="swatch d3"></i>3</span>
+        <span><i class="swatch d4"></i>4 bar</span>
+        <span><i class="swatch d5"></i>5</span>
+        <span><i class="swatch d6"></i>6</span>
+        <span><i class="swatch d7"></i>7</span>
+        <span><i class="swatch d8"></i>8</span>
+        <span><i class="swatch d9"></i>9</span>
+      </div>
+      <p class="note">Click a rectangle. Arrows move on the page. Same corpus and grid as four-symbol; this tab writes digits instead of bits.</p>
+      <p class="status" id="pack-status">—</p>
+    </aside>
+    <div class="stage">
+      <div id="teach-wrap">
+        <canvas id="circle" aria-label="Fingerprint circle"></canvas>
+        <canvas id="hourglass" aria-label="Hourglass nested diamonds"></canvas>
+      </div>
+      <canvas id="page" aria-label="9-symbol rectangles, one per Q post"></canvas>
+    </div>
+    <aside class="right">
+      <h2>Selected rectangle</h2>
+      <div id="inspect-meta">Click a cell.</div>
+      <canvas id="peek" width="300" height="220" aria-label="Readable blow-up of the selected tape"></canvas>
+      <p class="note">Blow-up uses the same cell layout at a readable glyph size. The page itself always fits every post.</p>
+      <h2>C1 ASCII</h2>
+      <div id="inspect-text">—</div>
+      <h2 class="teach-only">Byte roots</h2>
+      <div class="teach-only" id="inspect-table">—</div>
+    </aside>
+  </div>
+  <script src="js/quads.js?v=20260914d"></script>
+  <script src="js/layouts.js?v=20260914d"></script>
+  <script src="js/vortex.js?v=20260914v"></script>
+  <script src="js/vortex-page.js?v=20260914v2"></script>
+</body>
+</html>
