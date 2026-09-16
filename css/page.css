@@ -434,9 +434,11 @@ button.ghost { background: transparent; color: var(--muted); }
 body:not([data-theme="ebs"]) .swatch-bw,
 body:not([data-theme="ebs"]) #ebs-paint-row { display: none; }
 body[data-paint="toast"] .swatch-bw,
-body[data-paint="toast"] .swatch-code { display: none; }
+body[data-paint="toast"] .swatch-code,
+body[data-paint="filled"] .swatch-bw,
+body[data-paint="filled"] .swatch-code { display: none; }
 body:not([data-theme="ebs"]) .swatch-toast,
-body:not([data-paint="toast"]) .swatch-toast { display: none; }
+body:not([data-paint="toast"]):not([data-paint="filled"]) .swatch-toast { display: none; }
 
 #inspect-text, #inspect-meta {
   font: 11px/1.4 var(--mono);

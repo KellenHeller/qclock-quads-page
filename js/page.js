@@ -17,7 +17,7 @@
     ampmPm: "#ff2d7b",
   };
   let HOP_COL = ["#f4ff7a", "#9dff4a", "#3dff8a", "#2ee6c8", "#2ec8ff", "#7a8cff", "#ff4fd8"];
-  const PAINT_IDS = ["meaning", "spectrum", "toast"];
+  const PAINT_IDS = ["meaning", "spectrum", "toast", "filled"];
   let EBS_SQUARES = [
     "#ff0000",
     "#ff7a00",
@@ -278,6 +278,14 @@
     return ebsOn() && state.ebsPaint === "toast";
   }
 
+  function filledOn() {
+    return ebsOn() && state.ebsPaint === "filled";
+  }
+
+  function toastInkOn() {
+    return toastOn() || filledOn();
+  }
+
   function toastInk(code) {
     return TOAST_INK[(code | 0) & 3] || TOAST_INK[0];
   }
@@ -308,7 +316,7 @@
       if (isWhiteHex(hex)) return "#5c5c5c";
       return darkenHex(hex, 0.28);
     }
-    if (toastOn()) return darkenHex(TOAST_CELL, 0.22);
+    if (toastInkOn()) return darkenHex(TOAST_CELL, 0.22);
     if (state.theme === "ebs") return darkenHex(rainbowAt(p.hops | 0), 0.34);
     return THEME.cell;
   }
@@ -366,7 +374,7 @@
 
   function glyphPaint(code, i, paint) {
     paint = paint || {};
-    if (toastOn()) return toastInk(code);
+    if (toastInkOn()) return toastInk(code);
     if (ebsSpectrum()) return ebsSquareAt((paint.band | 0) + (i | 0));
     if (ebsOn()) {
       if (code === G_SQ0) return "#ffffff";
@@ -442,7 +450,7 @@
       const p = globalThis.QuadPage.cellXY(i, spec);
       const code = glyphs[i];
       let c;
-      if (toastOn()) {
+      if (toastInkOn()) {
         c = hexRgb(toastInk(code));
       } else if (ebsSpectrum()) {
         c = hexRgb(ebsSquareAt((paint.band | 0) + i));
@@ -482,11 +490,11 @@
     const spec = globalThis.QuadPage.cellSpec(cellKind, n, state.hideEmpty);
     const gw = w / spec.cols;
     const gh = h / spec.rows;
-    // Page-scale overview stays a 1px blit. The inspector peek is large
-    // enough to draw real squares/bars — required for Toast, where the
-    // four hex inks otherwise collapse into two muddy bands.
+    // Page-scale overview stays a 1px blit. Toast peek draws real
+    // squares/bars when they fit so the four hex inks stay separable.
+    // Filled frame always blits: one solid cell per glyph.
     const tiny = gw < 3 || gh < 3;
-    if (tiny || (n > 64 && !toastOn())) {
+    if (filledOn() || tiny || (n > 64 && !toastOn())) {
       blitTape(ctx, x, y, w, h, glyphs, spec, ctxp);
       return;
     }
@@ -658,12 +666,19 @@
       extra += " EBS spectrum: each glyph walks ROYGBIV + white + black. Cell band follows the header stripe.";
     } else if (state.theme === "ebs" && state.ebsPaint === "toast") {
       extra += " EBS toast: hex is the four-symbol code. sq0=#901131 sq1=#319011 bar0=#113190 bar1=#903111. Cell ground #901171.";
+    } else if (state.theme === "ebs" && state.ebsPaint === "filled") {
+      extra += " EBS filled frame: four-symbol hex as a packed bitmap (one solid cell per glyph). sq0=#901131 sq1=#319011 bar0=#113190 bar1=#903111.";
     } else if (state.theme === "ebs") {
       extra += " EBS meaning: white = square (C1=0), black = bar (C1=1). Cell color = hops to lock (red→violet). Hollow extra-bits (Code 2/3) take that hops color.";
     }
     if (state.hideEmpty) extra += " Empty slots hidden: leftover page cells and padded tape cells are omitted.";
     if (state.hideSolid) extra += " Solid squares off: empty-text posts (544, 550, …) are omitted.";
     if ($("tape-note")) $("tape-note").textContent = (TAPE_NOTE[state.tape] || "") + " " + (CELL_NOTE[state.cell] || "") + extra;
+    if ($("peek-note")) {
+      $("peek-note").textContent = filledOn()
+        ? "Blow-up packs the tape as a filled frame (one solid cell per glyph). The page itself always fits every post."
+        : "Blow-up uses the same cell layout at a readable glyph size. The page itself always fits every post.";
+    }
   }
 
   function writeHash() {

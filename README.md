@@ -18,6 +18,8 @@
   ·
   <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=spectrum&gaps=0&hide=1&solid=1">Spectrum</a>
   ·
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=filled&gaps=0&hide=1&solid=1">Filled frame</a>
+  ·
   <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=paper&gaps=0&hide=1&solid=1">Paper</a>
 </p>
 
@@ -112,11 +114,12 @@ C1 bit    extra    glyph     drawing
 
 ### EBS paints
 
-Theme **EBS** (“please stand by”) has three paints. These are overlays. They do not change the tape.
+Theme **EBS** (“please stand by”) has four paints. These are overlays. They do not change the tape.
 
 | Paint | What you see |
 | --- | --- |
-| **Toast** | Four-symbol hex above. Default. |
+| **Toast** | Four-symbol hex above, drawn as squares and bars. Default. |
+| **Filled frame** | Same four-symbol hex as a packed bitmap (one solid cell per glyph). |
 | **Meaning** | White filled square / black filled bar. Hollow marks take the hops rainbow. |
 | **Spectrum** | Every glyph walks ROYGBIV + white + black. Cell band follows the header stripe. |
 

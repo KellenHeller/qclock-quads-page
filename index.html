@@ -6,7 +6,7 @@
   <title>Four-symbol page — Q posts as rectangles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/page.css?v=20260916c" />
+  <link rel="stylesheet" href="css/page.css?v=20260916d" />
 </head>
 <body data-theme="ebs" data-paint="toast">
   <header>
@@ -103,6 +103,7 @@
           <option value="meaning">Meaning (C1 + hops)</option>
           <option value="spectrum">Spectrum (cycle 9)</option>
           <option value="toast" selected>Toast #901131</option>
+          <option value="filled">Filled frame</option>
         </select>
       </label>
       <label class="row">Color
@@ -140,13 +141,13 @@
       <h2>Selected rectangle</h2>
       <div id="inspect-meta">Click a cell.</div>
       <canvas id="peek" width="300" height="220" aria-label="Readable blow-up of the selected tape"></canvas>
-      <p class="note">Blow-up uses the same cell layout at a readable glyph size. The page itself always fits every post.</p>
+      <p class="note" id="peek-note">Blow-up uses the same cell layout at a readable glyph size. The page itself always fits every post.</p>
       <h2>C1 ASCII</h2>
       <div id="inspect-text">—</div>
     </aside>
   </div>
-  <script src="js/quads.js?v=20260916c"></script>
-  <script src="js/layouts.js?v=20260916c"></script>
-  <script src="js/page.js?v=20260916c"></script>
+  <script src="js/quads.js?v=20260916d"></script>
+  <script src="js/layouts.js?v=20260916d"></script>
+  <script src="js/page.js?v=20260916d"></script>
 </body>
 </html>
