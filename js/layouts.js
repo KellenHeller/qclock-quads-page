@@ -277,6 +277,320 @@
     return Number(m[1]) * 10000 + Number(m[2]) * 100 + Number(m[3]);
   }
 
+  const PICTURE = [
+    "off",
+    "frame",
+    "morton",
+    "hilbert",
+    "bitrev",
+    "zigzag",
+    "interlace",
+    "blocks8",
+    "mod37",
+    "nipkow",
+    "shuffle",
+  ];
+
+  const XFORM = ["none", "fliph", "flipv", "rot90", "rot180", "rot270", "transp"];
+
+  const FRAME_COLS = 64;
+  const FRAME_ROWS = 74;
+  const SHUFFLE_SEED = 421;
+
+  function lockedGrid(cols, rows, n, width, height) {
+    const c = Math.max(1, cols | 0);
+    const r = Math.max(1, rows | 0);
+    const count = Math.max(1, n | 0);
+    const W = Math.max(8, width || 1);
+    const H = Math.max(8, height || 1);
+    return {
+      cols: c,
+      rows: r,
+      cellW: W / c,
+      cellH: H / r,
+      slots: c * r,
+      n: count,
+      packed: false,
+      waste: Math.max(0, c * r - count),
+      locked: true,
+    };
+  }
+
+  function xformSwaps(xform) {
+    return xform === "transp" || xform === "rot90" || xform === "rot270";
+  }
+
+  function xformSize(xform) {
+    if (xformSwaps(xform)) return { cols: FRAME_ROWS, rows: FRAME_COLS };
+    return { cols: FRAME_COLS, rows: FRAME_ROWS };
+  }
+
+  function applyXform(c, r, cols, rows, xform) {
+    const id = XFORM.indexOf(xform) >= 0 ? xform : "none";
+    if (id === "fliph") return { col: cols - 1 - c, row: r };
+    if (id === "flipv") return { col: c, row: rows - 1 - r };
+    if (id === "rot180") return { col: cols - 1 - c, row: rows - 1 - r };
+    if (id === "rot90") return { col: rows - 1 - r, row: c };
+    if (id === "rot270") return { col: r, row: cols - 1 - c };
+    if (id === "transp") return { col: r, row: c };
+    return { col: c, row: r };
+  }
+
+  function part1by1(n) {
+    n &= 0xffff;
+    n = (n | (n << 8)) & 0x00ff00ff;
+    n = (n | (n << 4)) & 0x0f0f0f0f;
+    n = (n | (n << 2)) & 0x33333333;
+    n = (n | (n << 1)) & 0x55555555;
+    return n;
+  }
+
+  function mortonEncode(x, y) {
+    return (part1by1(y) << 1) | part1by1(x);
+  }
+
+  function mortonOrder(cols, rows) {
+    const cells = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        cells.push({ c: c, r: r, m: mortonEncode(c, r) });
+      }
+    }
+    cells.sort(function (a, b) {
+      return a.m - b.m || a.r - b.r || a.c - b.c;
+    });
+    return cells.map(function (p) {
+      return { c: p.c, r: p.r };
+    });
+  }
+
+  function hilbertRot(n, x, y, rx, ry) {
+    if (ry === 0) {
+      if (rx === 1) {
+        x = n - 1 - x;
+        y = n - 1 - y;
+      }
+      const t = x;
+      x = y;
+      y = t;
+    }
+    return { x: x, y: y };
+  }
+
+  function hilbertD2xy(n, d) {
+    let x = 0;
+    let y = 0;
+    let t = d >>> 0;
+    for (let s = 1; s < n; s *= 2) {
+      const rx = 1 & (t >>> 1);
+      const ry = 1 & (t ^ rx);
+      const rot = hilbertRot(s, x, y, rx, ry);
+      x = rot.x + s * rx;
+      y = rot.y + s * ry;
+      t >>>= 2;
+    }
+    return { c: x, r: y };
+  }
+
+  function hilbertOrder(cols, rows) {
+    let n = 1;
+    while (n < cols || n < rows) n *= 2;
+    const out = [];
+    const total = n * n;
+    for (let d = 0; d < total; d++) {
+      const p = hilbertD2xy(n, d);
+      if (p.c >= 0 && p.c < cols && p.r >= 0 && p.r < rows) out.push(p);
+    }
+    return out;
+  }
+
+  function reverseBits(v, bits) {
+    let r = 0;
+    let x = v >>> 0;
+    for (let i = 0; i < bits; i++) {
+      r = (r << 1) | (x & 1);
+      x >>>= 1;
+    }
+    return r >>> 0;
+  }
+
+  function bitrevOrder(cols, rows) {
+    const slots = cols * rows;
+    let bits = 1;
+    while (1 << bits < slots) bits += 1;
+    const n = 1 << bits;
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const rev = reverseBits(i, bits);
+      if (rev < slots) out.push({ c: rev % cols, r: Math.floor(rev / cols) });
+    }
+    return out;
+  }
+
+  function zigzagOrder(cols, rows) {
+    const out = [];
+    const max = cols + rows - 2;
+    for (let s = 0; s <= max; s++) {
+      if (s % 2 === 0) {
+        for (let r = 0; r <= s; r++) {
+          const c = s - r;
+          if (c >= 0 && c < cols && r < rows) out.push({ c: c, r: r });
+        }
+      } else {
+        for (let c = 0; c <= s; c++) {
+          const r = s - c;
+          if (c < cols && r >= 0 && r < rows) out.push({ c: c, r: r });
+        }
+      }
+    }
+    return out;
+  }
+
+  function interlaceOrder(cols, rows) {
+    const out = [];
+    for (let r = 0; r < rows; r += 2) {
+      for (let c = 0; c < cols; c++) out.push({ c: c, r: r });
+    }
+    for (let r = 1; r < rows; r += 2) {
+      for (let c = 0; c < cols; c++) out.push({ c: c, r: r });
+    }
+    return out;
+  }
+
+  function blocks8Order(cols, rows) {
+    const out = [];
+    const bw = 8;
+    const bh = 8;
+    const fullH = Math.floor(rows / bh) * bh;
+    for (let br = 0; br < fullH; br += bh) {
+      for (let bc = 0; bc < cols; bc += bw) {
+        for (let y = 0; y < bh; y++) {
+          for (let x = 0; x < bw; x++) {
+            const c = bc + x;
+            const r = br + y;
+            if (c < cols && r < rows) out.push({ c: c, r: r });
+          }
+        }
+      }
+    }
+    for (let r = fullH; r < rows; r++) {
+      for (let c = 0; c < cols; c++) out.push({ c: c, r: r });
+    }
+    return out;
+  }
+
+  function modInterlace(cols, rows, step) {
+    const slots = cols * rows;
+    const stride = Math.max(1, step | 0);
+    const out = [];
+    for (let start = 0; start < stride; start++) {
+      for (let x = start; x < slots; x += stride) {
+        out.push({ c: x % cols, r: Math.floor(x / cols) });
+      }
+    }
+    return out;
+  }
+
+  function nipkowOrder(cols, rows) {
+    const cx = (cols - 1) / 2;
+    const cy = (rows - 1) / 2;
+    const cells = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const dx = c - cx;
+        const dy = r - cy;
+        cells.push({ c: c, r: r, ang: Math.atan2(dy, dx), rad: dx * dx + dy * dy });
+      }
+    }
+    cells.sort(function (a, b) {
+      const da = a.ang - b.ang;
+      if (da) return da;
+      const dr = a.rad - b.rad;
+      if (dr) return dr;
+      return a.r - b.r || a.c - b.c;
+    });
+    return cells.map(function (p) {
+      return { c: p.c, r: p.r };
+    });
+  }
+
+  function lcg32(seed) {
+    let s = (seed >>> 0) || 1;
+    return function () {
+      s = (Math.imul(1664525, s) + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+  }
+
+  function shuffleOrder(cols, rows, seed) {
+    const slots = cols * rows;
+    const idx = new Array(slots);
+    for (let i = 0; i < slots; i++) idx[i] = i;
+    const rng = lcg32(seed == null ? SHUFFLE_SEED : seed);
+    for (let i = slots - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const t = idx[i];
+      idx[i] = idx[j];
+      idx[j] = t;
+    }
+    return idx.map(function (i) {
+      return { c: i % cols, r: Math.floor(i / cols) };
+    });
+  }
+
+  function rasterOrder(cols, rows) {
+    const out = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) out.push({ c: c, r: r });
+    }
+    return out;
+  }
+
+  function pictureOrder(kind, cols, rows) {
+    const c = Math.max(1, cols | 0);
+    const r = Math.max(1, rows | 0);
+    const id = PICTURE.indexOf(kind) >= 0 ? kind : "off";
+    if (id === "morton") return mortonOrder(c, r);
+    if (id === "hilbert") return hilbertOrder(c, r);
+    if (id === "bitrev") return bitrevOrder(c, r);
+    if (id === "zigzag") return zigzagOrder(c, r);
+    if (id === "interlace") return interlaceOrder(c, r);
+    if (id === "blocks8") return blocks8Order(c, r);
+    if (id === "mod37") return modInterlace(c, r, 37);
+    if (id === "nipkow") return nipkowOrder(c, r);
+    if (id === "shuffle") return shuffleOrder(c, r, SHUFFLE_SEED);
+    return rasterOrder(c, r);
+  }
+
+  function pictureSlot(i, grid, kind, weave, xform) {
+    const n = Math.max(0, i | 0);
+    const id = PICTURE.indexOf(kind) >= 0 ? kind : "off";
+    if (id === "off") return slotPos(n, grid, weave);
+    const srcCols = FRAME_COLS;
+    const srcRows = FRAME_ROWS;
+    let pos;
+    if (id === "frame") {
+      const src = {
+        cols: srcCols,
+        rows: srcRows,
+        n: grid.n,
+        packed: grid.packed,
+        weave: weave,
+      };
+      pos = slotPos(n, src, weave);
+    } else {
+      if (!grid._pic || grid._picKind !== id || grid._picCols !== srcCols || grid._picRows !== srcRows) {
+        grid._pic = pictureOrder(id, srcCols, srcRows);
+        grid._picKind = id;
+        grid._picCols = srcCols;
+        grid._picRows = srcRows;
+      }
+      const p = grid._pic[n];
+      pos = p ? { col: p.c, row: p.r } : { col: 0, row: 0 };
+    }
+    return applyXform(pos.col, pos.row, srcCols, srcRows, xform);
+  }
+
   function sortPosts(posts, order, helpers) {
     const id = ORDER.indexOf(order) >= 0 ? order : "q";
     const list = (posts || []).slice();
@@ -363,14 +677,25 @@
     WEAVE: WEAVE,
     TAPE: TAPE,
     CHIPS: CHIPS,
+    PICTURE: PICTURE,
+    XFORM: XFORM,
+    FRAME_COLS: FRAME_COLS,
+    FRAME_ROWS: FRAME_ROWS,
+    SHUFFLE_SEED: SHUFFLE_SEED,
     clampInt: clampInt,
     cellSpec: cellSpec,
     cellXY: cellXY,
     spiralCoords: spiralCoords,
     fitGrid: fitGrid,
+    lockedGrid: lockedGrid,
     cellRect: cellRect,
     hitPos: hitPos,
     slotPos: slotPos,
+    pictureOrder: pictureOrder,
+    pictureSlot: pictureSlot,
+    applyXform: applyXform,
+    xformSize: xformSize,
+    xformSwaps: xformSwaps,
     sortPosts: sortPosts,
     dateKey: dateKey,
   };

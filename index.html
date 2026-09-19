@@ -1,19 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="ebs">
+<html lang="en" data-theme="paper">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Four-symbol page — Q posts as rectangles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/page.css?v=20260916d" />
+  <link rel="stylesheet" href="css/page.css?v=20260918e" />
 </head>
-<body data-theme="ebs" data-paint="toast">
+<body data-theme="paper" data-layer="off">
   <header>
     <h1>Four-symbol page</h1>
     <div class="meta" id="banner-meta">loading corpus…</div>
     <div class="meta">grid <b id="grid-readout">—</b></div>
     <div class="meta">selected <b id="sel-readout">—</b></div>
+    <a class="ghost" href="http://127.0.0.1:8765/" title="Loop Code Visualizer">2D :8765</a>
+    <a class="ghost" href="http://127.0.0.1:8777/" title="3D analyzer">3D :8777</a>
   </header>
   <div class="shell">
     <aside class="left">
@@ -53,6 +55,36 @@
         <button class="ghost" id="fit" type="button">Refit page</button>
       </div>
 
+      <h2>Picture</h2>
+      <p class="note">Rearranges the rectangles on a 64×74 frame (hide empty + hide solid → 4,735 text posts + 1 remainder). Nothing inside a square changes. Off leaves Order + Weave as they are. Transform applies once Picture is not Off. Tape = field chip makes each square one mark if you want the page itself to read as a picture.</p>
+      <label class="row">Picture
+        <select id="picture">
+          <option value="off" selected>Off (Order + Weave)</option>
+          <option value="frame">Lock 64×74</option>
+          <option value="morton">Morton Z-order</option>
+          <option value="hilbert">Hilbert curve</option>
+          <option value="bitrev">Bit-reversal</option>
+          <option value="zigzag">Zig-zag diagonal</option>
+          <option value="interlace">Interlace even/odd</option>
+          <option value="blocks8">8×8 blocks</option>
+          <option value="mod37">Mod 37 interlace</option>
+          <option value="nipkow">Nipkow polar</option>
+          <option value="shuffle">Shuffle (seed 421)</option>
+        </select>
+      </label>
+      <label class="row">Transform
+        <select id="xform">
+          <option value="none" selected>None</option>
+          <option value="fliph">Flip horizontal</option>
+          <option value="flipv">Flip vertical</option>
+          <option value="rot90">Rotate 90° CW</option>
+          <option value="rot180">Rotate 180°</option>
+          <option value="rot270">Rotate 90° CCW</option>
+          <option value="transp">Transpose 74×64</option>
+        </select>
+      </label>
+      <p class="note" id="picture-note">Order + Weave pack the page as before. Picture scans stay off.</p>
+
       <h2>Rectangle</h2>
       <p class="note">Drew/Rodney: square/bar = Code 1 (ASCII). Fill on squares = Code 2. Fill on bars = Code 3.</p>
       <label class="row">Cell
@@ -86,6 +118,71 @@
       </label>
       <p class="note" id="tape-note">Full post text as Code 1. Long posts squeeze more rows into the same rectangle.</p>
 
+      <h2>Layering</h2>
+      <p class="note">Off leaves the current page. Peel splits C1 / C2 / C3. Mute hides glyph classes. Stack averages frames. Shuffle sibling on any view that looks like a picture. Independent packing — not a claim that Q wrote quads.</p>
+      <label class="row">Layering
+        <select id="layer">
+          <option value="off" selected>Off</option>
+          <option value="peel">Peel</option>
+          <option value="mute">Mute</option>
+          <option value="stack">Stack</option>
+          <option value="diff">Diff</option>
+        </select>
+      </label>
+      <p class="note" id="layer-caption"></p>
+      <label class="row layer-peel">Align
+        <select id="align">
+          <option value="tape" selected>Tape (holes)</option>
+          <option value="stream">Stream (TEXTPIC)</option>
+        </select>
+      </label>
+      <label class="row layer-comp">Composite
+        <select id="comp">
+          <option value="solo" selected>Solo</option>
+          <option value="add">Add</option>
+          <option value="screen">Screen</option>
+          <option value="multiply">Multiply</option>
+        </select>
+      </label>
+      <label class="row layer-peel">On page
+        <select id="onpage">
+          <option value="off" selected>Off (inspector only)</option>
+          <option value="under">Under the posts</option>
+          <option value="over">Over the posts</option>
+        </select>
+      </label>
+      <label class="row layer-peel"><span>Plate mix <b id="mix-readout">55</b></span>
+        <input id="mix" type="range" min="0" max="100" value="55" />
+      </label>
+      <label class="row layer-peel"><span>Plates</span>
+        <span class="checks">
+          <label><input id="plate-p1" type="checkbox" checked /> C1</label>
+          <label><input id="plate-p2" type="checkbox" checked /> C2</label>
+          <label><input id="plate-p3" type="checkbox" checked /> C3</label>
+        </span>
+      </label>
+      <label class="row layer-mute"><span>Mute</span>
+        <span class="checks">
+          <label><input id="mute-sq0" type="checkbox" /> sq0</label>
+          <label><input id="mute-sq1" type="checkbox" /> sq1</label>
+          <label><input id="mute-bar0" type="checkbox" /> bar0</label>
+          <label><input id="mute-bar1" type="checkbox" /> bar1</label>
+        </span>
+      </label>
+      <label class="row layer-stack">Stack
+        <select id="stack">
+          <option value="peek" selected>Peek frame</option>
+          <option value="corpus">Corpus mean</option>
+        </select>
+      </label>
+      <div class="btns layer-peel">
+        <button id="essay-load" type="button">Load TEXTPIC teaching in peek</button>
+      </div>
+      <div class="btns layer-peel layer-shuf">
+        <button class="ghost" id="shuffle-sib" type="button">Shuffle sibling</button>
+      </div>
+      <p class="note layer-later" id="layer-later-note"></p>
+
       <h2>Read</h2>
       <label class="row">Theme
         <select id="theme">
@@ -93,17 +190,16 @@
           <option value="volt">Volt (hazard yellow)</option>
           <option value="magma">Magma</option>
           <option value="ion">Ion (blue / magenta)</option>
-          <option value="ebs" selected>EBS (please stand by)</option>
-          <option value="paper">Paper (light)</option>
+          <option value="ebs">EBS (please stand by)</option>
+          <option value="paper" selected>Paper (light)</option>
           <option value="oak">Oak (original)</option>
         </select>
       </label>
       <label class="row" id="ebs-paint-row">EBS paint
         <select id="ebs-paint">
-          <option value="meaning">Meaning (C1 + hops)</option>
+          <option value="meaning" selected>Meaning (C1 + hops)</option>
           <option value="spectrum">Spectrum (cycle 9)</option>
-          <option value="toast" selected>Toast #901131</option>
-          <option value="filled">Filled frame</option>
+          <option value="toast">Toast #901131</option>
         </select>
       </label>
       <label class="row">Color
@@ -114,10 +210,11 @@
           <option value="basin">Lock basin</option>
         </select>
       </label>
-      <label class="row"><span>Cell gaps</span><input id="gaps" type="checkbox" /></label>
+      <label class="row"><span>Cell gaps</span><input id="gaps" type="checkbox" checked /></label>
       <label class="row"><span>q labels</span><input id="labels" type="checkbox" /></label>
-      <label class="row"><span>Hide empty slots</span><input id="hide-empty" type="checkbox" checked /></label>
-      <label class="row"><span>Hide solid squares</span><input id="hide-solid" type="checkbox" checked /></label>
+      <label class="row"><span>Hide empty slots</span><input id="hide-empty" type="checkbox" /></label>
+      <label class="row"><span>Hide solid squares</span><input id="hide-solid" type="checkbox" /></label>
+      <label class="row"><span>Filled frame</span><input id="filled-frame" type="checkbox" /></label>
       <div class="legend">
         <span class="swatch-code"><i class="swatch sq0"></i>sq0</span>
         <span class="swatch-code"><i class="swatch sq1"></i>sq1</span>
@@ -131,7 +228,7 @@
         <span class="swatch-toast"><i class="swatch toast-bar1"></i>bar1 #903111</span>
         <span class="swatch-toast"><i class="swatch toast-cell"></i>cell #901171</span>
       </div>
-      <p class="note">Click a rectangle. Arrows move on the page.</p>
+      <p class="note">Click a rectangle. Arrows move on the page. Same codec as :8765.</p>
       <p class="status" id="pack-status">—</p>
     </aside>
     <div class="stage">
@@ -142,12 +239,35 @@
       <div id="inspect-meta">Click a cell.</div>
       <canvas id="peek" width="300" height="220" aria-label="Readable blow-up of the selected tape"></canvas>
       <p class="note" id="peek-note">Blow-up uses the same cell layout at a readable glyph size. The page itself always fits every post.</p>
+      <div id="plates-block" hidden>
+        <h3>Plates</h3>
+        <p class="essay-badge" id="essay-badge" hidden>essay, not a find</p>
+        <div class="plates">
+          <figure>
+            <canvas id="plate-c1" width="96" height="96" aria-label="C1 plate"></canvas>
+            <figcaption id="cap-c1">C1</figcaption>
+          </figure>
+          <figure>
+            <canvas id="plate-c2" width="96" height="96" aria-label="C2 plate"></canvas>
+            <figcaption id="cap-c2">C2</figcaption>
+          </figure>
+          <figure>
+            <canvas id="plate-c3" width="96" height="96" aria-label="C3 plate"></canvas>
+            <figcaption id="cap-c3">C3</figcaption>
+          </figure>
+        </div>
+        <canvas id="plate-mix" width="300" height="160" aria-label="Composite of C1 C2 C3 plates"></canvas>
+        <p class="note" id="plate-note"></p>
+        <p class="note" id="stack-score" hidden></p>
+        <p class="note" id="essay-text" hidden></p>
+      </div>
       <h2>C1 ASCII</h2>
       <div id="inspect-text">—</div>
     </aside>
   </div>
-  <script src="js/quads.js?v=20260916d"></script>
-  <script src="js/layouts.js?v=20260916d"></script>
-  <script src="js/page.js?v=20260916d"></script>
+  <script src="js/quads.js?v=20260917a"></script>
+  <script src="js/layouts.js?v=20260917a"></script>
+  <script src="js/layers.js?v=20260918e"></script>
+  <script src="js/page.js?v=20260918f"></script>
 </body>
 </html>

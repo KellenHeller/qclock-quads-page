@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-901131.svg)](LICENSE)
 [![Posts](https://img.shields.io/badge/Q%20posts-4%2C966-319011.svg)](#the-corpus)
 [![Runtime](https://img.shields.io/badge/runtime-static%20HTML%20%2B%20canvas-113190.svg)](#run-it)
-[![Default](https://img.shields.io/badge/default-3414%20EBS%20toast-903111.svg)](#default-view)
+[![Default](https://img.shields.io/badge/default-3414%20paper-901171.svg)](#default-view)
 
 <p align="center">
   <strong><a href="https://kellenheller.github.io/qclock-quads-page/">Open the live page</a></strong>
@@ -18,43 +18,48 @@
   ·
   <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=spectrum&gaps=0&hide=1&solid=1">Spectrum</a>
   ·
-  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=filled&gaps=0&hide=1&solid=1">Filled frame</a>
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=toast&gaps=0&hide=1&solid=1&fill=1">Filled frame</a>
   ·
-  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=paper&gaps=0&hide=1&solid=1">Paper</a>
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=paper">Paper</a>
 </p>
 
 One canvas. Every Q post as its own Drew/Rodney rectangle. All **4,966** fit on a single page.
 
 This is an **independent packing** of a public catalog — not a claim that Q wrote quads.
 
+This snapshot matches the local `:8558` four-symbol page.
+
 ---
 
 ## Default view
 
-Post **#3414** · EBS **Toast** · cross frame **10×163** · triple-text · empty slots and solid squares hidden.
+Post **#3414** · Paper · cross frame **10×163** · triple-text · cell gaps on.
 
 | | |
 |---|---|
 | Order | Sequential q |
 | Weave | Raster L→R, T→B |
+| Picture | Off |
 | Cell | Cross frame 10×10 |
 | Tape | Triple-text (LOOP + stamp) |
-| Theme / paint | EBS · Toast `#901131` |
+| Layering | Off |
+| Theme / paint | Paper · Meaning (paint only applies in EBS) |
 | Color | Off (glyph ink) |
-| Cell gaps | off |
-| Hide empty / solid | on · on (231 blank posts omitted) |
+| Cell gaps | on |
+| Hide empty / solid | off · off |
+| Filled frame | off |
 
 Shareable hash (written on load):
 
 ```
-#q=3414&order=q&weave=raster&cell=cross&tape=triple-text&chips=spoke-hops&color=off&theme=ebs&paint=toast&gaps=0&hide=1&solid=1
+#q=3414&order=q&weave=raster&cell=cross&tape=triple-text&chips=spoke-hops&color=off&theme=paper&paint=meaning
 ```
 
 <p align="center">
   <img src="docs/screenshots/rail-toast.png" alt="Selected rectangle 3414 — toast four-symbol blow-up and C1 ASCII" width="360">
 </p>
 
-Toast inks — one hex per mark:
+Toast inks — one hex per mark (EBS Toast paint):
 
 | Glyph | Hex | Role |
 |---|---|---|
@@ -68,7 +73,7 @@ Toast inks — one hex per mark:
 
 ## Gallery
 
-Same tape, four paints. Click a shot to open that view.
+Same tape, four looks. Click a shot to open that view.
 
 <p align="center">
   <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=toast&gaps=0&hide=1&solid=1"><img src="docs/screenshots/hero-toast.png" alt="EBS toast" width="48%"></a>
@@ -76,7 +81,7 @@ Same tape, four paints. Click a shot to open that view.
 </p>
 <p align="center">
   <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=ebs&paint=spectrum&gaps=0&hide=1&solid=1"><img src="docs/screenshots/hero-spectrum.png" alt="EBS spectrum" width="48%"></a>
-  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=paper&gaps=0&hide=1&solid=1"><img src="docs/screenshots/hero-paper.png" alt="Paper theme" width="48%"></a>
+  <a href="https://kellenheller.github.io/qclock-quads-page/#q=3414&tape=triple-text&cell=cross&theme=paper"><img src="docs/screenshots/hero-paper.png" alt="Paper theme" width="48%"></a>
 </p>
 
 <p align="center">
@@ -114,16 +119,17 @@ C1 bit    extra    glyph     drawing
 
 ### EBS paints
 
-Theme **EBS** (“please stand by”) has four paints. These are overlays. They do not change the tape.
+Theme **EBS** (“please stand by”) has three paints. These are overlays. They do not change the tape.
 
 | Paint | What you see |
 | --- | --- |
-| **Toast** | Four-symbol hex above, drawn as squares and bars. Default. |
-| **Filled frame** | Same four-symbol hex as a packed bitmap (one solid cell per glyph). |
 | **Meaning** | White filled square / black filled bar. Hollow marks take the hops rainbow. |
 | **Spectrum** | Every glyph walks ROYGBIV + white + black. Cell band follows the header stripe. |
+| **Toast** | Four-symbol hex above, drawn as squares and bars. |
 
-Other themes: Phosphor, Volt, Magma, Ion, Paper, Oak.
+**Filled frame** is a separate toggle (`fill=1`), not an EBS paint. On, the selected rectangle packs as a bitmap (one solid cell per glyph). Off keeps the current blow-up: real squares/bars when they fit, which Toast uses so the four hex inks stay separable.
+
+Other themes: Phosphor, Volt, Magma, Ion, Paper (default), Oak.
 
 ---
 
@@ -156,13 +162,29 @@ Depth is at most 6. Display timezone and hash timezone are both `America/New_Yor
 
 **Weave** — raster, boustrophedon (ox-plow), spiral (outer → in), columns.
 
+**Picture** (separate from Order): off leaves Order + Weave as they are. Any other value locks the page to a **64×74** frame — the packed canvas from Hide empty + Hide solid (4,735 text posts + 1 remainder = 4,736). Glyphs inside each square do not change. Scans: lock 64×74, Morton Z-order, Hilbert, bit-reversal, zig-zag, even/odd interlace, 8×8 blocks, mod-37 interlace, Nipkow polar, shuffle (seed 421). Hash `pic=`.
+
+**Transform** (with Picture on): none, flip H/V, rotate 90/180/270, transpose 74×64. Hash `xform=`. Example: `#q=3414&hide=1&solid=1&pic=morton&xform=transp`.
+
 **Cell packing** — 8-wide byte rows, 32-wide notebook, column-major, boustrophedon, square spiral, weeks (7), nearest square, 8×14 fish frame, 10×10 cross frame.
 
 **Tape** — C1 ASCII (full post) · triple-text · head 8 bytes · field chip (`spoke-hops` / `ampm-lock` / `even-q` / `timehash`).
 
-**Toggles** — cell gaps · q labels · hide empty leftover slots · hide solid squares (image-only / blank posts such as 544 and 550).
+**Layering** (default Off — the page is unchanged): Peel splits C1/C2/C3 onto inspector plates. **On page** (Peel only) paints those plates under or over every post. Plate mix 0–100 is plate strength. Mute hides sq0/sq1/bar0/bar1 without changing packing. Composite is Solo / Add / Screen / Multiply. Essay loads the TEXTPIC teaching fish/cross into the peek only. **Stack** averages the current cell frame across posts. **Diff** is current Order vs a sibling order as signed gray. Hash `layer=` `onpage=` `mix=` `align=` `comp=` `p1=` `m0=` `essay=` `shuf=` `stack=`.
+
+**Toggles** — cell gaps · q labels · hide empty leftover slots · hide solid squares (image-only / blank posts such as 544 and 550) · filled frame.
 
 State lives in the URL hash, so a view is shareable.
+
+```
+#q=3414&cell=cross&tape=triple-text&theme=paper
+#q=3414&cell=cross&tape=triple-text&theme=ebs&paint=toast&fill=1
+#q=3414&cell=cross&tape=triple-text&theme=paper&layer=peel
+#q=3414&cell=fish&layer=peel&align=stream&essay=1
+#q=3414&layer=mute&m1=1&m3=1
+#q=3414&cell=cross&layer=stack&shuf=1
+#q=3414&cell=cross&tape=triple-text&theme=paper&layer=peel&onpage=over
+```
 
 ---
 
@@ -180,9 +202,12 @@ Then open [http://127.0.0.1:8558/](http://127.0.0.1:8558/), or skip the clone an
 
 ```bash
 python3 tests/page.py
+python3 tests/layers.py
 ```
 
-Locks fit / weave / Drew cell packing, toast hex, hide-empty / hide-solid, and post **3414** (1624 glyphs, cell 10×163, all four inks).
+`tests/page.py` locks fit / weave / Drew cell packing, toast hex, hide-empty / hide-solid, filled-frame, picture scans, and post **3414** (1624 glyphs, cell 10×163, all four inks).
+
+`tests/layers.py` locks peel / mute / stack / diff math.
 
 ---
 
@@ -192,12 +217,14 @@ Locks fit / weave / Drew cell packing, toast hex, hide-empty / hide-solid, and p
 index.html                 four-symbol page
 css/page.css               chrome + themes (including EBS toast hex)
 js/quads.js                four-symbol codec (pure functions, no DOM)
-js/layouts.js              rectangle packing / weaves
+js/layouts.js              rectangle packing / weaves / picture scans
+js/layers.js               peel / mute / stack / diff (pure functions, no DOM)
 js/page.js                 four-symbol app
 data/corpus.json           4,966 posts + LOOP meta
 data/quads-teaching.json   teaching fixture
 docs/screenshots/          landing shots
 tests/page.py              packing locks
+tests/layers.py            layering locks
 serve.sh                   local server
 ```
 

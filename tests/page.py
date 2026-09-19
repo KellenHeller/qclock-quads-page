@@ -299,14 +299,9 @@ def main() -> int:
         check(hexv in html, f"html missing {hexv}")
         check(f"--toast-{name}" in css, f"css var --toast-{name}")
     check('option value="toast"' in html, "toast paint option")
-    check('option value="filled"' in html, "filled frame paint option")
     check("function toastInk" in js, "toastInk maps glyph code to hex")
     check("toastOn()" in js and "ebsSpectrum()" in js, "toast is not spectrum walk")
     check("TOAST_INK" in js and "TOAST_CELL" in js, "toast ink + cell")
-    check("function filledOn" in js and "function toastInkOn" in js, "filled frame is an EBS paint")
-    check("filledOn() || tiny" in js, "filled frame blits packed bitmap")
-    check('id="filled-frame"' not in html, "no filled-frame checkbox")
-    check('parts.push("fill=1")' not in js, "filled frame is paint=filled, not fill=1")
 
     spec = cell_spec("fish", 8)
     check(spec["rows"] == 14, f"fish pad {spec}")
@@ -330,6 +325,78 @@ def main() -> int:
     check(544 in blank_q and 550 in blank_q, "544 and 550 are solid/blank")
     check('id="hide-solid"' in html, "hide solid checkbox")
     check("hideSolid" in js and "isSolidPost" in js, "hide solid wiring")
+    check('id="filled-frame"' in html, "filled frame checkbox")
+    check("filledFrame" in js and 'parts.push("fill=1")' in js, "filled frame wiring")
+    check("state.filledFrame || tiny" in js, "filled frame blits toast like meaning")
+    check('id="picture"' in html and 'id="xform"' in html, "picture + transform dropdowns")
+    check("picture: \"off\"" in js and "xform: \"none\"" in js, "picture defaults off")
+    check("function pictureSlot" in (ROOT / "js" / "layouts.js").read_text(), "pictureSlot in layouts")
+    check("FRAME_COLS = 64" in (ROOT / "js" / "layouts.js").read_text(), "64-wide picture frame")
+    check("FRAME_ROWS = 74" in (ROOT / "js" / "layouts.js").read_text(), "74-tall picture frame")
+    check('parts.push("pic=" + state.picture)' in js, "picture hash")
+    check('parts.push("xform=" + state.xform)' in js, "xform hash")
+
+    def unique_order(kind, cols=64, rows=74):
+        # Mirror the JS scans enough to freeze permutation size.
+        slots = cols * rows
+        if kind == "interlace":
+            out = [(c, r) for r in range(0, rows, 2) for c in range(cols)]
+            out += [(c, r) for r in range(1, rows, 2) for c in range(cols)]
+            return out
+        if kind == "mod37":
+            out = []
+            for start in range(37):
+                for x in range(start, slots, 37):
+                    out.append((x % cols, x // cols))
+            return out
+        if kind == "blocks8":
+            out = []
+            full_h = (rows // 8) * 8
+            for br in range(0, full_h, 8):
+                for bc in range(0, cols, 8):
+                    for y in range(8):
+                        for x in range(8):
+                            out.append((bc + x, br + y))
+            for r in range(full_h, rows):
+                for c in range(cols):
+                    out.append((c, r))
+            return out
+        if kind == "bitrev":
+            bits = 1
+            while (1 << bits) < slots:
+                bits += 1
+            out = []
+            for i in range(1 << bits):
+                v, rbits = i, 0
+                for _ in range(bits):
+                    rbits = (rbits << 1) | (v & 1)
+                    v >>= 1
+                if rbits < slots:
+                    out.append((rbits % cols, rbits // cols))
+            return out
+        if kind == "zigzag":
+            out = []
+            for s in range(cols + rows - 1):
+                if s % 2 == 0:
+                    for r in range(s + 1):
+                        c = s - r
+                        if 0 <= c < cols and r < rows:
+                            out.append((c, r))
+                else:
+                    for c in range(s + 1):
+                        r = s - c
+                        if c < cols and 0 <= r < rows:
+                            out.append((c, r))
+            return out
+        raise AssertionError(kind)
+
+    for kind in ("interlace", "mod37", "blocks8", "bitrev", "zigzag"):
+        order = unique_order(kind)
+        check(len(order) == 64 * 74, f"{kind} len {len(order)}")
+        check(len(set(order)) == 64 * 74, f"{kind} unique {len(set(order))}")
+    check(unique_order("mod37")[0] == (0, 0) and unique_order("mod37")[1] == (37, 0), "mod37 stride")
+    check(unique_order("interlace")[64][1] == 2, "interlace skips odd rows first")
+    check(64 * 74 - 4735 == 1, "64x74 is the packed text-post frame")
 
     p3414 = next(p for p in posts if p["q"] == 3414)
     check(p3414["date"] == "2019-07-11", f"3414 date {p3414['date']}")
@@ -346,17 +413,11 @@ def main() -> int:
     check(kinds == {0, 1, 2, 3}, f"3414 four inks {kinds}")
     check(glyphs_3414.count(1) > 0 and glyphs_3414.count(3) > 0, "3414 extra-bit fills")
     check('value="3414"' in html, "default selected 3414")
-    check('value="ebs" selected' in html, "default ebs theme")
-    check('value="toast" selected' in html, "default toast paint")
-    check('["meaning", "spectrum", "toast", "filled"]' in js, "paint ids include filled")
+    check('value="paper" selected' in html, "default paper theme")
     check('value="cross" selected' in html, "default cross cell")
     check('value="triple-text" selected' in html, "default triple-text tape")
-    check('id="hide-empty" type="checkbox" checked' in html, "default hide empty")
-    check('id="hide-solid" type="checkbox" checked' in html, "default hide solid")
-    check('id="gaps" type="checkbox" checked' not in html, "default gaps off")
     check('selected: 3414' in js and 'cell: "cross"' in js and 'tape: "triple-text"' in js, "js defaults match 3414")
-    check('theme: "ebs"' in js and 'ebsPaint: "toast"' in js, "js default ebs toast")
-    check("gaps: false" in js and "hideEmpty: true" in js and "hideSolid: true" in js, "js default hide empty/solid, no gaps")
+    check('theme: "paper"' in js, "js default paper")
 
     if errors:
         print("FAIL")
