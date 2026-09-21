@@ -6,21 +6,26 @@
   <title>Four-symbol page — Q posts as rectangles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/page.css?v=20260918e" />
+  <link rel="stylesheet" href="css/page.css?v=20260921h" />
 </head>
-<body data-theme="paper" data-layer="off">
+<body data-theme="paper" data-layer="off" data-quote="off">
   <header>
     <h1>Four-symbol page</h1>
     <div class="meta" id="banner-meta">loading corpus…</div>
     <div class="meta">grid <b id="grid-readout">—</b></div>
     <div class="meta">selected <b id="sel-readout">—</b></div>
-    <a class="ghost" href="http://127.0.0.1:8765/" title="Loop Code Visualizer">2D :8765</a>
-    <a class="ghost" href="http://127.0.0.1:8777/" title="3D analyzer">3D :8777</a>
   </header>
   <div class="shell">
     <aside class="left">
       <h2>Page</h2>
       <p class="note">Each post is one rectangle. All 4,966 fit here. Independent packing — not a claim that Q wrote quads.</p>
+      <label class="row">Squares
+        <span class="view-switch" role="group" aria-label="Middle squares">
+          <button type="button" id="view-tape" aria-pressed="true">Tape</button>
+          <button type="button" id="view-plates" aria-pressed="false">Plates</button>
+        </span>
+      </label>
+      <p class="note" id="view-note">The middle is the tape mosaic: one packed rectangle per post.</p>
       <label class="row">Order
         <select id="order">
           <option value="q" selected>Sequential q (1…4966)</option>
@@ -119,7 +124,7 @@
       <p class="note" id="tape-note">Full post text as Code 1. Long posts squeeze more rows into the same rectangle.</p>
 
       <h2>Layering</h2>
-      <p class="note">Off leaves the current page. Peel splits C1 / C2 / C3. Mute hides glyph classes. Stack averages frames. Shuffle sibling on any view that looks like a picture. Independent packing — not a claim that Q wrote quads.</p>
+      <p class="note">Off leaves the current page. Peel splits C1 / C2 / C3 / C4. Mute hides glyph classes. Stack averages frames. Shuffle sibling on any view that looks like a picture. Independent packing — not a claim that Q wrote quads.</p>
       <label class="row">Layering
         <select id="layer">
           <option value="off" selected>Off</option>
@@ -130,13 +135,29 @@
         </select>
       </label>
       <p class="note" id="layer-caption"></p>
-      <label class="row layer-peel">Align
+      <label class="row">Initial post
+        <select id="quote">
+          <option value="off" selected>Off</option>
+          <option value="peek">Peek</option>
+          <option value="under">Under the posts</option>
+          <option value="over">Over the posts</option>
+        </select>
+      </label>
+      <label class="row layer-quote">Quote tape
+        <select id="quote-tape">
+          <option value="c1-only">C1 ASCII (quote text)</option>
+          <option value="triple-text" selected>Triple-text (nested + stamp)</option>
+        </select>
+      </label>
+      <p class="note" id="quote-caption"></p>
+      <p class="note layer-quote">Off leaves the current page. Peek / Under / Over use the same Align, Composite, Plates, Mute, and Shuffle as Layering. Independent packing — not a Q drop.</p>
+      <label class="row layer-peel layer-quote-tune">Align
         <select id="align">
           <option value="tape" selected>Tape (holes)</option>
           <option value="stream">Stream (TEXTPIC)</option>
         </select>
       </label>
-      <label class="row layer-comp">Composite
+      <label class="row layer-comp layer-quote-tune">Composite
         <select id="comp">
           <option value="solo" selected>Solo</option>
           <option value="add">Add</option>
@@ -144,24 +165,27 @@
           <option value="multiply">Multiply</option>
         </select>
       </label>
-      <label class="row layer-peel">On page
+      <label class="row layer-onpage">On page
         <select id="onpage">
           <option value="off" selected>Off (inspector only)</option>
           <option value="under">Under the posts</option>
           <option value="over">Over the posts</option>
         </select>
       </label>
-      <label class="row layer-peel"><span>Plate mix <b id="mix-readout">55</b></span>
+      <label class="row layer-peel layer-quote-mix"><span id="mix-label">Plate mix <b id="mix-readout">55</b></span>
         <input id="mix" type="range" min="0" max="100" value="55" />
       </label>
-      <label class="row layer-peel"><span>Plates</span>
+      <label class="row layer-peel layer-quote-tune"><span>Plates</span>
         <span class="checks">
           <label><input id="plate-p1" type="checkbox" checked /> C1</label>
           <label><input id="plate-p2" type="checkbox" checked /> C2</label>
           <label><input id="plate-p3" type="checkbox" checked /> C3</label>
+          <label class="plate-c4-lab"><input id="plate-p4" type="checkbox" checked /> C4</label>
         </span>
       </label>
-      <label class="row layer-mute"><span>Mute</span>
+      <label class="row"><span>Swap C3/C4</span><input id="swap-c34" type="checkbox" /></label>
+      <p class="note" id="swap-c34-note">Off: C3 blue / black, C4 green / black. On: C3 green / black, C4 blue / black.</p>
+      <label class="row layer-mute layer-quote-tune"><span>Mute</span>
         <span class="checks">
           <label><input id="mute-sq0" type="checkbox" /> sq0</label>
           <label><input id="mute-sq1" type="checkbox" /> sq1</label>
@@ -178,7 +202,7 @@
       <div class="btns layer-peel">
         <button id="essay-load" type="button">Load TEXTPIC teaching in peek</button>
       </div>
-      <div class="btns layer-peel layer-shuf">
+      <div class="btns layer-peel layer-shuf layer-quote-tune">
         <button class="ghost" id="shuffle-sib" type="button">Shuffle sibling</button>
       </div>
       <p class="note layer-later" id="layer-later-note"></p>
@@ -200,6 +224,7 @@
           <option value="meaning" selected>Meaning (C1 + hops)</option>
           <option value="spectrum">Spectrum (cycle 9)</option>
           <option value="toast">Toast #901131</option>
+          <option value="yolk">Yolk #909011</option>
         </select>
       </label>
       <label class="row">Color
@@ -225,16 +250,22 @@
         <span class="swatch-toast"><i class="swatch toast-sq0"></i>sq0 #901131</span>
         <span class="swatch-toast"><i class="swatch toast-sq1"></i>sq1 #319011</span>
         <span class="swatch-toast"><i class="swatch toast-bar0"></i>bar0 #113190</span>
-        <span class="swatch-toast"><i class="swatch toast-bar1"></i>bar1 #903111</span>
+        <span class="swatch-toast swatch-toast-bar1"><i class="swatch toast-bar1"></i>bar1 #903111</span>
+        <span class="swatch-toast swatch-yolk-bar1"><i class="swatch yolk-bar1"></i>bar1 #909011</span>
         <span class="swatch-toast"><i class="swatch toast-cell"></i>cell #901171</span>
       </div>
-      <p class="note">Click a rectangle. Arrows move on the page. Same codec as :8765.</p>
+      <p class="note">Click a rectangle. Arrows move on the page. Same Drew/Rodney four-symbol codec.</p>
       <p class="status" id="pack-status">—</p>
     </aside>
     <div class="stage">
       <canvas id="page" aria-label="Four-symbol rectangles, one per Q post"></canvas>
     </div>
     <aside class="right">
+      <div class="right-tabs" role="tablist" aria-label="Right inspector">
+        <button type="button" role="tab" id="tab-inspect" aria-controls="tab-panel-inspect" aria-selected="true">Inspect</button>
+        <button type="button" role="tab" id="tab-stack" aria-controls="tab-panel-stack" aria-selected="false">Stack</button>
+      </div>
+      <div id="tab-panel-inspect" role="tabpanel" aria-labelledby="tab-inspect">
       <h2>Selected rectangle</h2>
       <div id="inspect-meta">Click a cell.</div>
       <canvas id="peek" width="300" height="220" aria-label="Readable blow-up of the selected tape"></canvas>
@@ -255,19 +286,62 @@
             <canvas id="plate-c3" width="96" height="96" aria-label="C3 plate"></canvas>
             <figcaption id="cap-c3">C3</figcaption>
           </figure>
+          <figure id="fig-c4" hidden>
+            <canvas id="plate-c4" width="96" height="96" aria-label="C4 plate"></canvas>
+            <figcaption id="cap-c4">C4</figcaption>
+          </figure>
         </div>
-        <canvas id="plate-mix" width="300" height="160" aria-label="Composite of C1 C2 C3 plates"></canvas>
+        <canvas id="plate-mix" width="300" height="160" aria-label="Composite of C1 C2 C3 C4 plates"></canvas>
         <p class="note" id="plate-note"></p>
         <p class="note" id="stack-score" hidden></p>
         <p class="note" id="essay-text" hidden></p>
       </div>
+      <div id="quote-block" hidden>
+        <h3>Initial post</h3>
+        <p class="note" id="quote-meta"></p>
+        <canvas id="quote-peek" width="300" height="160" aria-label="Four-symbol packing of the quoted board post"></canvas>
+        <div class="plates quote-plates">
+          <figure>
+            <canvas id="quote-c1" width="96" height="96" aria-label="Quote C1 plate"></canvas>
+            <figcaption id="qcap-c1">C1</figcaption>
+          </figure>
+          <figure>
+            <canvas id="quote-c2" width="96" height="96" aria-label="Quote C2 plate"></canvas>
+            <figcaption id="qcap-c2">C2</figcaption>
+          </figure>
+          <figure>
+            <canvas id="quote-c3" width="96" height="96" aria-label="Quote C3 plate"></canvas>
+            <figcaption id="qcap-c3">C3</figcaption>
+          </figure>
+          <figure>
+            <canvas id="quote-c4" width="96" height="96" aria-label="Quote C4 plate"></canvas>
+            <figcaption id="qcap-c4">C4</figcaption>
+          </figure>
+        </div>
+        <canvas id="quote-mix" width="300" height="160" aria-label="Composite of quote C1 C2 C3 C4 plates"></canvas>
+        <p class="note" id="quote-plate-note"></p>
+        <pre id="quote-text"></pre>
+        <p class="note" id="quote-note"></p>
+      </div>
       <h2>C1 ASCII</h2>
       <div id="inspect-text">—</div>
+      </div>
+      <div id="tab-panel-stack" role="tabpanel" aria-labelledby="tab-stack" hidden>
+        <h2 id="stack-peek-title">Selected + Initial post</h2>
+        <canvas id="stack-peek" width="300" height="220" aria-label="Selected rectangle layered with this drop’s initial post"></canvas>
+        <p class="note" id="stack-peek-note">Selected rectangle under this drop’s initial post. If this square has no quote, only the selected tape is shown.</p>
+        <h2 id="stack-mix-title">Plates + Quote plates</h2>
+        <canvas id="stack-mix" width="300" height="160" aria-label="Q plates layered with this drop’s quote plates"></canvas>
+        <p class="note" id="stack-mix-note">Q plate mix under this drop’s quote plate mix. Mix slider is overlay strength.</p>
+        <h2 id="stack-combo-title">Both stacks</h2>
+        <canvas id="stack-combo" width="300" height="220" aria-label="First stack square layered with the second stack square"></canvas>
+        <p class="note" id="stack-combo-note">The first square layered with the second square. Mix slider is overlay strength.</p>
+      </div>
     </aside>
   </div>
   <script src="js/quads.js?v=20260917a"></script>
   <script src="js/layouts.js?v=20260917a"></script>
-  <script src="js/layers.js?v=20260918e"></script>
-  <script src="js/page.js?v=20260918f"></script>
+  <script src="js/layers.js?v=20260921h"></script>
+  <script src="js/page.js?v=20260921h"></script>
 </body>
 </html>

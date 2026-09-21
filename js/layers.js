@@ -7,6 +7,7 @@
   const SEED = 421;
   const INK_C2 = "#c41e3a";
   const INK_C3 = "#1e4ec4";
+  const INK_C4 = "#1e9c3a";
 
   function codeOf(g) {
     if (typeof g === "number" && isFinite(g)) return g & 3;
@@ -257,12 +258,99 @@
     return table[codeOf(code)];
   }
 
+  function cleanQuoteText(raw) {
+    let s = raw == null ? "" : String(raw);
+    s = s.replace(/<\s*br\s*\/?\s*>/gi, "\n");
+    s = s.replace(/<\s*\/?\s*(p|div)(?:\s[^>]*)?\s*>/gi, "\n");
+    s = s.replace(/<[^>]+>/g, "");
+    s = s.replace(/&nbsp;/gi, " ");
+    s = s.replace(/&amp;/g, "&");
+    s = s.replace(/&lt;/g, "<");
+    s = s.replace(/&gt;/g, ">");
+    s = s.replace(/&quot;/g, '"');
+    s = s.replace(/&#39;/g, "'");
+    s = s.replace(/&#x([0-9a-fA-F]+);/g, function (_, n) {
+      return String.fromCharCode(parseInt(n, 16));
+    });
+    s = s.replace(/&#(\d+);/g, function (_, n) {
+      return String.fromCharCode(Number(n));
+    });
+    s = s.replace(/\r\n?/g, "\n");
+    s = s.replace(/[ \t]+\n/g, "\n");
+    s = s.replace(/\n{3,}/g, "\n\n");
+    return s.replace(/^\n+|\n+$/g, "");
+  }
+
+  function mergeClip(c1, c2, c3) {
+    const a = c1 || [];
+    const e2 = c2 || [];
+    const e3 = c3 || [];
+    const n = a.length;
+    const out = new Array(n);
+    let i2 = 0;
+    let i3 = 0;
+    for (let i = 0; i < n; i++) {
+      if (a[i]) {
+        const extra = i3 < e3.length ? (e3[i3] ? 1 : 0) : 0;
+        i3 += 1;
+        out[i] = extra ? 3 : 2;
+      } else {
+        const extra = i2 < e2.length ? (e2[i2] ? 1 : 0) : 0;
+        i2 += 1;
+        out[i] = extra ? 1 : 0;
+      }
+    }
+    return out;
+  }
+
+  function quoteStamp(ref, hasQ) {
+    const hms = String((ref && ref.est_hms) || "00:00:00").split(":");
+    const hh = Number(hms[0]) || 0;
+    const mm = Number(hms[1]) || 0;
+    const n = hh * 100 + mm;
+    const n12 = ((hh + 12) % 24) * 100 + mm;
+    const pad = (x) => String(x | 0).padStart(2, "0");
+    const a = hasQ && hasQ(n) ? String(n) : "—";
+    const b = hasQ && hasQ(n12) ? String(n12) : "—";
+    return pad(hh) + pad(mm) + "→" + a + "/" + b;
+  }
+
+  function nestedBits(text) {
+    const t = cleanQuoteText(text);
+    if (!t) return [];
+    const Q = root.Quads;
+    if (!Q || !Q.asciiToBits) return [];
+    return Q.asciiToBits(t);
+  }
+
+  function quoteTape(text, opts) {
+    const t = cleanQuoteText(text);
+    if (!t) return [0];
+    const Q = root.Quads;
+    if (!Q || !Q.asciiToBits) return [0];
+    const c1 = Q.asciiToBits(t);
+    opts = opts || {};
+    const nested = cleanQuoteText(opts.nested || "");
+    const stamp = opts.stamp != null ? String(opts.stamp) : "";
+    const c2 = nested ? nestedBits(nested) : [];
+    const c3 = stamp ? Q.asciiToBits(stamp) : [];
+    if (opts.pad && Q.merge) {
+      const m = Q.merge(c1, c2, c3);
+      const glyphs = m && m.glyphs ? m.glyphs : [];
+      const out = new Array(glyphs.length);
+      for (let i = 0; i < glyphs.length; i++) out[i] = codeOf(glyphs[i]);
+      return out;
+    }
+    return mergeClip(c1, c2, c3);
+  }
+
   root.QuadLayers = {
     NAMES: NAMES,
     CODE_FROM: CODE_FROM,
     SEED: SEED,
     INK_C2: INK_C2,
     INK_C3: INK_C3,
+    INK_C4: INK_C4,
     codeOf: codeOf,
     unpackIndex: unpackIndex,
     tapeAlignedPlates: tapeAlignedPlates,
@@ -280,5 +368,10 @@
     mixRgba: mixRgba,
     diffLuma: diffLuma,
     glyphLuma: glyphLuma,
+    mergeClip: mergeClip,
+    cleanQuoteText: cleanQuoteText,
+    nestedBits: nestedBits,
+    quoteStamp: quoteStamp,
+    quoteTape: quoteTape,
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);

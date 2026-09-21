@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -96,6 +97,69 @@ def merge(c1: list[int], c2: list[int], c3: list[int]) -> tuple[list[int], int]:
             i2 += 1
             glyphs.append(1 if extra else 0)
     return glyphs, pad
+
+
+BR_RE = re.compile(r"<br\s*/?>", re.I)
+P_RE = re.compile(r"</?(?:p|div)(?:\s[^>]*)?>", re.I)
+TAG_RE = re.compile(r"<[^>]+>")
+SPACE_NL_RE = re.compile(r"[ \t]+\n")
+MULTI_NL_RE = re.compile(r"\n{3,}")
+TEACHING_QUOTE = ">>612417\n\n(((Planned Parenthood)))"
+TEACHING_QUOTE_RAW = '>>612417\n\n<span class="detected">(((Planned Parenthood)))</span>\n'
+
+
+def clean_quote_text(raw) -> str:
+    import html as html_mod
+
+    s = "" if raw is None else str(raw)
+    s = BR_RE.sub("\n", s)
+    s = P_RE.sub("\n", s)
+    s = TAG_RE.sub("", s)
+    s = html_mod.unescape(s)
+    s = s.replace("\r\n", "\n").replace("\r", "\n")
+    s = SPACE_NL_RE.sub("\n", s)
+    s = MULTI_NL_RE.sub("\n\n", s)
+    return s.strip("\n")
+
+
+def merge_clip(c1: list[int], c2: list[int], c3: list[int]) -> list[int]:
+    glyphs: list[int] = []
+    i2 = i3 = 0
+    c2 = list(c2 or [])
+    c3 = list(c3 or [])
+    for bit in c1:
+        if bit:
+            extra = c3[i3] if i3 < len(c3) else 0
+            i3 += 1
+            glyphs.append(3 if extra else 2)
+        else:
+            extra = c2[i2] if i2 < len(c2) else 0
+            i2 += 1
+            glyphs.append(1 if extra else 0)
+    return glyphs
+
+
+def quote_stamp(hh: int, mm: int, has_q) -> str:
+    n = int(hh) * 100 + int(mm)
+    n12 = ((int(hh) + 12) % 24) * 100 + int(mm)
+    a = str(n) if has_q(n) else "—"
+    b = str(n12) if has_q(n12) else "—"
+    return f"{int(hh):02d}{int(mm):02d}→{a}/{b}"
+
+
+def quote_tape(text: str, nested: str = "", stamp: str = "") -> list[int]:
+    t = clean_quote_text(text)
+    if not t.strip():
+        return [0]
+    c1 = ascii_to_bits(t)
+    c2 = ascii_to_bits(clean_quote_text(nested)) if nested else []
+    c3 = ascii_to_bits(stamp) if stamp else []
+    if not c2 and not c3:
+        glyphs, pad = merge(c1, [], [])
+        if pad != 0:
+            raise AssertionError(f"quote tape padBytes {pad} (want 0)")
+        return glyphs
+    return merge_clip(c1, c2, c3)
 
 
 def bits_to_ascii(bits: list[int]) -> str:
@@ -317,13 +381,61 @@ def main() -> int:
     check('selected: 3414' in js and 'cell: "cross"' in js, "retain 3414/cross")
     check('id="onpage"' in html, "on page dropdown")
     check('onPage: "off"' in js, "on page default off")
+    check('id="view-plates"' in html, "plates view switch")
+    check('pageView: "tape"' in js, "squares view default tape")
+    check("function pageSquaresPlates" in js, "pageSquaresPlates")
+    check('data-view="plates"' in (ROOT / "css" / "page.css").read_text(), "plates view css")
     check("function drawLayeredTape" in js, "page-scale peel")
     check('id="mix"' in html, "mix slider")
     check("function meanFrame" in layers, "meanFrame")
     check("function diffLuma" in layers, "diffLuma")
     check("glyphAtlas" in js, "cached glyph atlas")
+    check('id="quote"' in html, "initial post dropdown")
+    check('value="off" selected' in html.split('id="quote"')[1][:400], "quote default off")
+    check('quote: "off"' in js, "js quote default off")
+    check('id="quote-tape"' in html, "quote tape dropdown")
+    check('value="triple-text" selected' in html.split('id="quote-tape"')[1][:400], "quote tape default triple")
+    check('id="plate-p4"' in html, "C4 plate checkbox")
+    check('id="quote-c1"' in html, "quote C1 plate canvas")
+    check('id="quote-mix"' in html, "quote mix canvas")
+    check("INK_C4" in layers, "layers.js C4 ink")
+    check("function mergeClip" in layers, "mergeClip")
+    check("function quoteStamp" in layers, "quoteStamp")
+    check("function cleanQuoteText" in layers, "cleanQuoteText")
+    check("function quoteTape" in layers, "quoteTape")
+    check("function nestedBits" in layers, "nestedBits")
+    check('id="tab-stack"' in html, "stack tab")
+    check('id="stack-peek"' in html, "stack peek canvas")
+    check('id="stack-combo"' in html, "stack combo canvas")
+    check("function nestedPlateField" in js, "nestedPlateField")
+    check("paintMix([" in js.split("function paintPlates")[1][:1800], "inspector mix uses the same C1/C2/C3 fields as the tiles")
+    check('if (cellKind === "cross") return { w: 10, h: 10 }' in layers, "cross streamSize is the 10×10 frame")
+    check('if (cellKind === "fish") return { w: 8, h: 14 }' in layers, "fish streamSize is the 8×14 frame")
+    check("function paintStackViews" in js, "paintStackViews")
+    check("function paintStackCombo" in js, "paintStackCombo")
+    check("function clearQuoteInspector" in js, "clearQuoteInspector")
+    check(clean_quote_text(TEACHING_QUOTE_RAW) == TEACHING_QUOTE, "909 clean freeze")
+    g909 = quote_tape(TEACHING_QUOTE_RAW)
+    check(len(g909) == 272, f"909 glyphs {len(g909)}")
+    check(bits_to_ascii(split_aligned(g909)["c1"]) == TEACHING_QUOTE, "909 round-trip")
+    check(quote_tape("") == [0], "empty quote is sq0")
+    check(set(g909) <= {0, 2}, "c1-only is sq0/bar0")
+    nested_909 = "Just in: Planned Parenthood cuts ties with Women's March regional leader over Farrakhan support."
+    stamp_909 = quote_stamp(12, 34, lambda n: n in {1234, 34})
+    check(stamp_909 == "1234→1234/34", f"909 stamp {stamp_909}")
+    g909t = quote_tape(TEACHING_QUOTE, nested_909, stamp_909)
+    check(len(g909t) == 272, f"909 triple glyphs {len(g909t)}")
+    check(set(g909t) == {0, 1, 2, 3}, f"909 triple classes {set(g909t)}")
+    check(bits_to_ascii(split_aligned(g909t)["c1"]) == TEACHING_QUOTE, "909 triple C1 round-trip")
+    check(merge_clip(ascii_to_bits("A"), [], []) == quote_tape("A"), "clip empty extras = c1-only")
+    check("(((" in TEACHING_QUOTE and "Planned Parenthood" in TEACHING_QUOTE, "parens stay ASCII")
     check("scheduleMixDraw" in js, "mix slider does not rebuild atlas")
     check('value="stack">Stack</option>' in html, "stack is live")
+    check('id="swap-c34"' in html, "swap C3/C4")
+    check("figC4.hidden = state.layer !== \"peel\"" in js or "figC4.hidden = state.layer !== 'peel'" in js, "C4 plate shows in peel without quote")
+    check("quoteOn() && state.layer === \"peel\"" not in js, "C4 plate no longer gated on Initial post")
+    check('option value="yolk"' in html, "yolk paint")
+    check("YOLK_INK" in js and "#909011" in js, "yolk bar1 #909011")
     check('value="diff">Diff</option>' in html, "diff is live")
     check("teachingGlyphs" not in js.split("function meanTapes")[1][:800], "essay not in corpus mean")
     check('return "spoke"' in js.split("function siblingOrder")[1][:500], "q/ts sibling is spoke")

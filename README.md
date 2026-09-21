@@ -126,6 +126,7 @@ Theme **EBS** (“please stand by”) has three paints. These are overlays. They
 | **Meaning** | White filled square / black filled bar. Hollow marks take the hops rainbow. |
 | **Spectrum** | Every glyph walks ROYGBIV + white + black. Cell band follows the header stripe. |
 | **Toast** | Four-symbol hex above, drawn as squares and bars. |
+| **Yolk** | Same as Toast except bar1 is `#909011`. Hash `paint=yolk`. |
 
 **Filled frame** is a separate toggle (`fill=1`), not an EBS paint. On, the selected rectangle packs as a bitmap (one solid cell per glyph). Off keeps the current blow-up: real squares/bars when they fit, which Toast uses so the four hex inks stay separable.
 
@@ -170,7 +171,11 @@ Depth is at most 6. Display timezone and hash timezone are both `America/New_Yor
 
 **Tape** — C1 ASCII (full post) · triple-text · head 8 bytes · field chip (`spoke-hops` / `ampm-lock` / `even-q` / `timehash`).
 
-**Layering** (default Off — the page is unchanged): Peel splits C1/C2/C3 onto inspector plates. **On page** (Peel only) paints those plates under or over every post. Plate mix 0–100 is plate strength. Mute hides sq0/sq1/bar0/bar1 without changing packing. Composite is Solo / Add / Screen / Multiply. Essay loads the TEXTPIC teaching fish/cross into the peek only. **Stack** averages the current cell frame across posts. **Diff** is current Order vs a sibling order as signed gray. Hash `layer=` `onpage=` `mix=` `align=` `comp=` `p1=` `m0=` `essay=` `shuf=` `stack=`.
+**Squares** (Tape / Plates, default Tape): Tape is the middle mosaic — one packed rectangle per post. **Plates** paints each rectangle as that post’s plate mix (C1 / C2 / C3 / C4) instead of the packed tape. Align / Composite / plate checkboxes still apply. Hash `view=plates`.
+
+**Layering** (default Off — the page is unchanged): Peel splits C1/C2/C3 onto inspector plates. Stream (TEXTPIC) packs C2/C3 into the Rodney frame (cross 10×10 / fish 8×14); the mix composites those same plates. **C4** is the quoted Anon’s C1 when Initial post is on. **On page** (Peel only) paints those plates under or over every post. Plate mix 0–100 is plate strength. Mute hides sq0/sq1/bar0/bar1 without changing packing. Composite is Solo / Add / Screen / Multiply. Essay loads the TEXTPIC teaching fish/cross into the peek only. **Stack** averages the current cell frame across posts. **Diff** is current Order vs a sibling order as signed gray. Hash `layer=` `onpage=` `mix=` `align=` `comp=` `p1=` `p4=` `m0=` `essay=` `shuf=` `stack=` `view=`.
+
+**Initial post** (default Off): packs the qalerts quoted Anon as four-symbol. Peek adds inspector canvases under the Q plates. Under / Over mix that tape into every rectangle that has a quote. Hash `quote=` `qtape=`. Sidecar `data/initial-posts.json`.
 
 **Toggles** — cell gaps · q labels · hide empty leftover slots · hide solid squares (image-only / blank posts such as 544 and 550) · filled frame.
 
@@ -184,6 +189,9 @@ State lives in the URL hash, so a view is shareable.
 #q=3414&layer=mute&m1=1&m3=1
 #q=3414&cell=cross&layer=stack&shuf=1
 #q=3414&cell=cross&tape=triple-text&theme=paper&layer=peel&onpage=over
+#q=3414&cell=cross&tape=triple-text&theme=paper&view=plates
+#q=909&cell=cross&tape=triple-text&theme=paper&quote=peek
+#q=3414&cell=cross&tape=triple-text&theme=ebs&paint=yolk
 ```
 
 ---
@@ -203,11 +211,14 @@ Then open [http://127.0.0.1:8558/](http://127.0.0.1:8558/), or skip the clone an
 ```bash
 python3 tests/page.py
 python3 tests/layers.py
+python3 tests/initial.py
 ```
 
 `tests/page.py` locks fit / weave / Drew cell packing, toast hex, hide-empty / hide-solid, filled-frame, picture scans, and post **3414** (1624 glyphs, cell 10×163, all four inks).
 
-`tests/layers.py` locks peel / mute / stack / diff math.
+`tests/layers.py` locks peel / mute / stack / diff math, including Stream as the 10×10 / 8×14 Rodney frames.
+
+`tests/initial.py` locks quoted-Anon packing for Initial post.
 
 ---
 
@@ -222,9 +233,12 @@ js/layers.js               peel / mute / stack / diff (pure functions, no DOM)
 js/page.js                 four-symbol app
 data/corpus.json           4,966 posts + LOOP meta
 data/quads-teaching.json   teaching fixture
+data/initial-posts.json    quoted Anon sidecar for Initial post
 docs/screenshots/          landing shots
 tests/page.py              packing locks
 tests/layers.py            layering locks
+tests/initial.py           Initial post packing locks
+tools/build_initial_posts.py
 serve.sh                   local server
 ```
 

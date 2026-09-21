@@ -17,13 +17,16 @@
     ampmPm: "#ff2d7b",
   };
   let HOP_COL = ["#f4ff7a", "#9dff4a", "#3dff8a", "#2ee6c8", "#2ec8ff", "#7a8cff", "#ff4fd8"];
-  const PAINT_IDS = ["meaning", "spectrum", "toast"];
+  const PAINT_IDS = ["meaning", "spectrum", "toast", "yolk"];
   const LAYER_IDS = ["off", "peel", "mute", "stack", "diff"];
   const ALIGN_IDS = ["tape", "stream"];
   const COMP_IDS = ["solo", "add", "screen", "multiply"];
   const ONPAGE_IDS = ["off", "under", "over"];
+  const PAGE_VIEW_IDS = ["tape", "plates"];
+  const QUOTE_IDS = ["off", "peek", "under", "over"];
+  const QUOTE_TAPE_IDS = ["c1-only", "triple-text"];
   const MIX_DEFAULT = 55;
-  const PLATE_INK = { c1: "#111111", c2: "#c41e3a", c3: "#1e4ec4" };
+  const PLATE_INK = { c1: "#111111", c2: "#c41e3a", c3: "#1e4ec4", c4: "#1e9c3a" };
   let EBS_SQUARES = [
     "#ff0000",
     "#ff7a00",
@@ -36,6 +39,7 @@
     "#000000",
   ];
   let TOAST_INK = ["#901131", "#319011", "#113190", "#903111"];
+  let YOLK_INK = ["#901131", "#319011", "#113190", "#909011"];
   let TOAST_CELL = "#901171";
   let GLYPH_RGBA = [
     [216, 255, 154, 255],
@@ -124,6 +128,7 @@
     color: "off",
     theme: "paper",
     ebsPaint: "meaning",
+    swapC3C4: false,
     gaps: true,
     labels: false,
     hideEmpty: false,
@@ -134,11 +139,19 @@
     layer: "off",
     align: "tape",
     comp: "solo",
-    plates: { c1: true, c2: true, c3: true },
+    plates: { c1: true, c2: true, c3: true, c4: true },
     mute: { sq0: false, sq1: false, bar0: false, bar1: false },
     stack: "peek",
     onPage: "off",
+    pageView: "tape",
     mix: MIX_DEFAULT,
+    quote: "off",
+    quoteTape: "triple-text",
+    rightTab: "inspect",
+    quotes: null,
+    quoteTapes: null,
+    quoteAtlas: null,
+    quoteMissing: false,
     shuffle: false,
     essay: false,
     teaching: null,
@@ -279,8 +292,36 @@
     return state.layer === "mute";
   }
 
+  function quoteOn() {
+    return state.quote && state.quote !== "off";
+  }
+
+  function pageQuoteOn() {
+    return state.quote === "under" || state.quote === "over";
+  }
+
+  function pageViewPlates() {
+    return state.pageView === "plates";
+  }
+
+  function pageSquaresPlates() {
+    return pageViewPlates();
+  }
+
   function pagePlatesOn() {
+    if (pageSquaresPlates() || pageQuoteOn()) return false;
     return state.layer === "peel" && (state.onPage === "under" || state.onPage === "over");
+  }
+
+  function pageNeedsPlates() {
+    return pagePlatesOn() || pageSquaresPlates();
+  }
+
+  function refreshPlateView() {
+    if (pageNeedsPlates() || pageQuoteOn()) {
+      state.dirty = true;
+      draw();
+    }
   }
 
   function plateMix() {
@@ -288,17 +329,52 @@
     return Math.max(0, Math.min(100, m)) / 100;
   }
 
+  function applyRightTab() {
+    const onStack = state.rightTab === "stack";
+    document.body.dataset.rtab = onStack ? "stack" : "inspect";
+    const inspect = $("tab-panel-inspect");
+    const stack = $("tab-panel-stack");
+    if (inspect) inspect.hidden = onStack;
+    if (stack) stack.hidden = !onStack;
+    if ($("tab-inspect")) {
+      $("tab-inspect").setAttribute("aria-selected", onStack ? "false" : "true");
+    }
+    if ($("tab-stack")) {
+      $("tab-stack").setAttribute("aria-selected", onStack ? "true" : "false");
+    }
+  }
+
+  function syncViewSwitch() {
+    if ($("view-tape")) $("view-tape").setAttribute("aria-pressed", pageViewPlates() ? "false" : "true");
+    if ($("view-plates")) $("view-plates").setAttribute("aria-pressed", pageViewPlates() ? "true" : "false");
+  }
+
   function applyLayerChrome() {
     document.body.dataset.layer = state.layer || "off";
+    document.body.dataset.quote = state.quote || "off";
+    document.body.dataset.view = state.pageView || "tape";
+    applyRightTab();
+    syncViewSwitch();
     const plates = $("plates-block");
     if (plates) {
-      const show = state.layer === "peel" || state.layer === "stack" || state.layer === "diff";
+      const show = state.layer === "peel" || state.layer === "stack" || state.layer === "diff" || pageViewPlates();
       plates.hidden = !show;
     }
+    const quoteBlock = $("quote-block");
+    if (quoteBlock) quoteBlock.hidden = !quoteOn();
+    const figC4 = $("fig-c4");
+    if (figC4) figC4.hidden = state.layer !== "peel" && !(pageViewPlates() && state.layer === "off");
     const badge = $("essay-badge");
     if (badge) badge.hidden = !state.essay;
     const essayText = $("essay-text");
     if (essayText) essayText.hidden = !state.essay;
+    const mixLabel = $("mix-label");
+    if (mixLabel) {
+      const n = String(state.mix | 0);
+      mixLabel.innerHTML = pageQuoteOn()
+        ? `Quote mix <b id="mix-readout">${n}</b>`
+        : `Plate mix <b id="mix-readout">${n}</b>`;
+    }
   }
 
   function clearEssay() {
@@ -307,8 +383,13 @@
     return true;
   }
 
-  function muteMaskFor(glyphs) {
-    if (!muteOn() || !globalThis.QuadLayers) return null;
+  function muteMaskFor(glyphs, forQuote) {
+    if (!globalThis.QuadLayers) return null;
+    if (forQuote) {
+      if (!quoteOn()) return null;
+      return globalThis.QuadLayers.muteMask(glyphs, state.mute);
+    }
+    if (!muteOn()) return null;
     return globalThis.QuadLayers.muteMask(glyphs, state.mute);
   }
 
@@ -379,11 +460,32 @@
   }
 
   function toastOn() {
-    return ebsOn() && state.ebsPaint === "toast";
+    return ebsOn() && (state.ebsPaint === "toast" || state.ebsPaint === "yolk");
   }
 
   function toastInk(code) {
-    return TOAST_INK[(code | 0) & 3] || TOAST_INK[0];
+    const pal = state.ebsPaint === "yolk" ? YOLK_INK : TOAST_INK;
+    return pal[(code | 0) & 3] || pal[0];
+  }
+
+  function plateInks() {
+    const L = globalThis.QuadLayers || {};
+    const blue = L.INK_C3 || PLATE_INK.c3;
+    const green = L.INK_C4 || PLATE_INK.c4;
+    return {
+      c1: THEME.ink || PLATE_INK.c1,
+      c2: L.INK_C2 || PLATE_INK.c2,
+      c3: state.swapC3C4 ? green : blue,
+      c4: state.swapC3C4 ? blue : green,
+    };
+  }
+
+  function c3Word() {
+    return state.swapC3C4 ? "green" : "blue";
+  }
+
+  function c4Word() {
+    return state.swapC3C4 ? "blue" : "green";
   }
 
   function ebsBand(cell) {
@@ -452,6 +554,7 @@
       cssVar("--toast-bar0") || TOAST_INK[2],
       cssVar("--toast-bar1") || TOAST_INK[3],
     ];
+    YOLK_INK = [TOAST_INK[0], TOAST_INK[1], TOAST_INK[2], cssVar("--yolk-bar1") || YOLK_INK[3]];
     TOAST_CELL = cssVar("--toast-cell") || TOAST_CELL;
     GLYPH_RGBA = [hexRgb(THEME.ink), hexRgb(THEME.crimson), hexRgb(THEME.bar0), hexRgb(THEME.sage)];
     document.body.dataset.paint = state.ebsPaint;
@@ -530,7 +633,7 @@
     }
   }
 
-  function blitTape(ctx, x, y, w, h, glyphs, spec, hueBase) {
+  function blitTape(ctx, x, y, w, h, glyphs, spec, hueBase, skipMute, forQuote) {
     const cols = spec.cols;
     const rows = spec.rows;
     if (blitScratch.width !== cols || blitScratch.height !== rows) {
@@ -542,7 +645,7 @@
     data.fill(0);
     const n = glyphs.length;
     const paint = hueBase && typeof hueBase === "object" ? hueBase : { hops: hueBase | 0, band: 0 };
-    const mask = muteMaskFor(glyphs);
+    const mask = skipMute ? null : muteMaskFor(glyphs, forQuote);
     for (let i = 0; i < n; i++) {
       if (mask && !mask[i]) continue;
       const p = globalThis.QuadPage.cellXY(i, spec);
@@ -577,12 +680,12 @@
     ctx.drawImage(blitScratch, 0, 0, cols, rows, x, y, w, h);
   }
 
-  function drawTapeInRect(ctx, x, y, w, h, glyphs, cellKind, paint) {
+  function drawTapeInRect(ctx, x, y, w, h, glyphs, cellKind, paint, skipMute, forQuote) {
     const n = glyphs && glyphs.length ? glyphs.length : 0;
     if (!n) return;
     const ctxp = paint && typeof paint === "object" ? paint : { hops: paint | 0, band: 0 };
     if (n === 1) {
-      const mask1 = muteMaskFor(glyphs);
+      const mask1 = skipMute ? null : muteMaskFor(glyphs, forQuote);
       if (mask1 && !mask1[0]) return;
       drawGlyph(ctx, x, y, w, h, glyphs[0], glyphPaint(glyphs[0], 0, ctxp));
       return;
@@ -596,15 +699,94 @@
     // way Meaning does, one solid cell per glyph, stretched to the box.
     const tiny = gw < 3 || gh < 3;
     if (state.filledFrame || tiny || (n > 64 && !toastOn())) {
-      blitTape(ctx, x, y, w, h, glyphs, spec, ctxp);
+      blitTape(ctx, x, y, w, h, glyphs, spec, ctxp, skipMute, forQuote);
       return;
     }
-    const mask = muteMaskFor(glyphs);
+    const mask = skipMute ? null : muteMaskFor(glyphs, forQuote);
     for (let i = 0; i < n; i++) {
       if (mask && !mask[i]) continue;
       const p = globalThis.QuadPage.cellXY(i, spec);
       drawGlyph(ctx, x + p.c * gw, y + p.r * gh, gw, gh, glyphs[i], glyphPaint(glyphs[i], i, ctxp));
     }
+  }
+
+  function firstQuote(q) {
+    const rec = state.quotes && state.quotes[String(q)];
+    if (!rec || !rec.refs || !rec.refs.length) return null;
+    return rec.refs[0];
+  }
+
+  function quoteTextOf(q) {
+    const L = globalThis.QuadLayers;
+    const ref = firstQuote(q);
+    if (!ref) return "";
+    const t = L ? L.cleanQuoteText(ref.text) : String(ref.text || "");
+    return (t || "").trim() ? t : "";
+  }
+
+  function nestedTextOf(q) {
+    const L = globalThis.QuadLayers;
+    const ref = firstQuote(q);
+    if (!ref || !ref.nested) return "";
+    const t = L ? L.cleanQuoteText(ref.nested.text) : String(ref.nested.text || "");
+    return (t || "").trim() ? t : "";
+  }
+
+  function quoteGlyphsOf(q) {
+    if (!quoteTextOf(q)) return null;
+    const tape = state.quoteTapes && state.quoteTapes[q];
+    return tape && tape.length ? tape : null;
+  }
+
+  function nestedPlateField(q) {
+    const t = nestedTextOf(q);
+    if (!t) return null;
+    const L = globalThis.QuadLayers;
+    const P = globalThis.QuadPage;
+    if (!L || !P) return null;
+    const bits = L.nestedBits ? L.nestedBits(t) : [];
+    if (!bits.length) return null;
+    return { bits: bits, spec: P.cellSpec(state.cell, bits.length, state.hideEmpty) };
+  }
+
+  function rebuildQuoteTapes() {
+    const L = globalThis.QuadLayers;
+    const n = state.posts.length;
+    const tapes = new Array(n + 1);
+    if (!L || !L.quoteTape) {
+      state.quoteTapes = tapes;
+      return;
+    }
+    const triple = state.quoteTape !== "c1-only";
+    const hasQ = (nn) => state.hasQ.has(nn);
+    for (let i = 0; i < n; i++) {
+      const p = state.posts[i];
+      const ref = firstQuote(p.q);
+      if (!ref) continue;
+      const t = L.cleanQuoteText(ref.text);
+      if (!t) continue;
+      const opts = {};
+      if (triple) {
+        opts.nested = ref.nested && ref.nested.text ? ref.nested.text : "";
+        opts.stamp = L.quoteStamp ? L.quoteStamp(ref, hasQ) : "";
+      }
+      tapes[p.q] = Uint8Array.from(L.quoteTape(t, opts));
+    }
+    state.quoteTapes = tapes;
+  }
+
+  function drawQuoteInRect(ctx, x, y, w, h, quoteGlyphs, qGlyphs, paint) {
+    if (!quoteGlyphs || !quoteGlyphs.length || !qGlyphs || !qGlyphs.length) return;
+    const P = globalThis.QuadPage;
+    if (!P) return;
+    const spec = P.cellSpec(state.cell, qGlyphs.length, state.hideEmpty);
+    const cap = spec.cols * spec.rows;
+    const n = Math.min(quoteGlyphs.length, cap);
+    if (n <= 0) return;
+    let clipped = quoteGlyphs;
+    if (n < quoteGlyphs.length) clipped = quoteGlyphs.subarray ? quoteGlyphs.subarray(0, n) : quoteGlyphs.slice(0, n);
+    if (state.shuffle) clipped = layerGlyphs(clipped);
+    blitTape(ctx, x, y, w, h, clipped, spec, paint, false, true);
   }
 
   function prepLayerCanvas(existing, bw, bh, dpr, opaque) {
@@ -631,22 +813,34 @@
     const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
     const bw = Math.max(1, Math.floor(sz.w * dpr));
     const bh = Math.max(1, Math.floor(sz.h * dpr));
-    const split = pagePlatesOn();
+    const peelSplit = pagePlatesOn();
+    const quoteSplit = pageQuoteOn() && !pageSquaresPlates();
+    const split = peelSplit || quoteSplit;
     const ground = prepLayerCanvas(state.atlas, bw, bh, dpr, true);
     state.atlas = ground.cv;
     const gctx = ground.ctx;
     let xctx = null;
     let pctx = null;
+    let qctx = null;
     if (split) {
       const glyphs = prepLayerCanvas(state.glyphAtlas, bw, bh, dpr, false);
       state.glyphAtlas = glyphs.cv;
       xctx = glyphs.ctx;
-      const plates = prepLayerCanvas(state.plateAtlas, bw, bh, dpr, false);
-      state.plateAtlas = plates.cv;
-      pctx = plates.ctx;
+      if (peelSplit) {
+        const plates = prepLayerCanvas(state.plateAtlas, bw, bh, dpr, false);
+        state.plateAtlas = plates.cv;
+        pctx = plates.ctx;
+        state.quoteAtlas = null;
+      } else {
+        const quotes = prepLayerCanvas(state.quoteAtlas, bw, bh, dpr, false);
+        state.quoteAtlas = quotes.cv;
+        qctx = quotes.ctx;
+        state.plateAtlas = null;
+      }
     } else {
       state.glyphAtlas = null;
       state.plateAtlas = null;
+      state.quoteAtlas = null;
     }
     const g = state.grid;
     if (!g) {
@@ -676,9 +870,15 @@
       const tw = w - 0.8;
       const th = Math.max(1, tapeH - 0.8);
       const paint = ebsPaintCtx(cell, cell.post);
-      if (split) {
+      if (pageSquaresPlates()) {
+        drawMixInRect(gctx, tx, ty, tw, th, plateFieldsFor(glyphs, quoteGlyphsOf(cell.post.q)), cellFill(cell.post, cell));
+      } else if (split) {
         drawTapeInRect(xctx, tx, ty, tw, th, glyphs, state.cell, paint);
-        drawPlatesInRect(pctx, tx, ty, tw, th, glyphs);
+        if (pctx) drawPlatesInRect(pctx, tx, ty, tw, th, glyphs, quoteGlyphsOf(cell.post.q));
+        if (qctx) {
+          const qg = quoteGlyphsOf(cell.post.q);
+          if (qg) drawQuoteInRect(qctx, tx, ty, tw, th, qg, glyphs, paint);
+        }
       } else {
         drawTapeInRect(gctx, tx, ty, tw, th, glyphs, state.cell, paint);
       }
@@ -730,14 +930,29 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, cv.width, cv.height);
     const mix = plateMix();
-    const split = pagePlatesOn() && state.glyphAtlas && state.plateAtlas;
+    const peelSplit = pagePlatesOn() && state.glyphAtlas && state.plateAtlas;
+    const quoteSplit = pageQuoteOn() && !pageSquaresPlates() && state.glyphAtlas && state.quoteAtlas;
     if (state.atlas) ctx.drawImage(state.atlas, 0, 0, cv.width, cv.height);
-    if (split && mix > 0 && state.onPage === "under") {
+    if (quoteSplit) {
+      if (state.quote === "under") {
+        if (mix > 0) ctx.drawImage(state.quoteAtlas, 0, 0, cv.width, cv.height);
+        ctx.globalAlpha = 1 - mix;
+        if (ctx.globalAlpha > 0.02) ctx.drawImage(state.glyphAtlas, 0, 0, cv.width, cv.height);
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.drawImage(state.glyphAtlas, 0, 0, cv.width, cv.height);
+        if (mix > 0) {
+          ctx.globalAlpha = mix;
+          ctx.drawImage(state.quoteAtlas, 0, 0, cv.width, cv.height);
+          ctx.globalAlpha = 1;
+        }
+      }
+    } else if (peelSplit && mix > 0 && state.onPage === "under") {
       ctx.drawImage(state.plateAtlas, 0, 0, cv.width, cv.height);
       ctx.globalAlpha = 1 - mix;
       if (ctx.globalAlpha > 0.02) ctx.drawImage(state.glyphAtlas, 0, 0, cv.width, cv.height);
       ctx.globalAlpha = 1;
-    } else if (split) {
+    } else if (peelSplit) {
       ctx.drawImage(state.glyphAtlas, 0, 0, cv.width, cv.height);
       if (mix > 0) {
         ctx.globalAlpha = mix;
@@ -756,6 +971,7 @@
       draw();
       const p = state.byQ.get(state.selected);
       if (p) paintPeek(p);
+      paintStackViews(p || null);
     });
   }
 
@@ -800,6 +1016,96 @@
     const pad = 8;
     const cell = state.cells.find((c) => c && c.post && c.post.q === p.q);
     drawLayeredTape(ctx, pad, pad, w - pad * 2, h - pad * 2, glyphs, state.cell, ebsPaintCtx(cell, p));
+  }
+
+  function fillNamedCanvas(id, fallbackW, fallbackH) {
+    const cv = $(id);
+    if (!cv) return;
+    const box = sizePlateCanvas(cv, cv.clientWidth || fallbackW || 96, cv.clientHeight || fallbackH || 88);
+    box.ctx.fillStyle = state.theme === "ebs" ? "#6a6a6a" : THEME.stage;
+    box.ctx.fillRect(0, 0, box.w, box.h);
+  }
+
+  function clearQuoteInspector(msg) {
+    fillNamedCanvas("quote-peek", 300, 160);
+    fillNamedCanvas("quote-c1", 96, 88);
+    fillNamedCanvas("quote-c2", 96, 88);
+    fillNamedCanvas("quote-c3", 96, 88);
+    fillNamedCanvas("quote-c4", 96, 88);
+    fillNamedCanvas("quote-mix", 300, 140);
+    if ($("quote-text")) $("quote-text").textContent = "—";
+    if ($("quote-meta")) $("quote-meta").textContent = msg || "This drop has no quoted board post.";
+    if ($("quote-note")) {
+      $("quote-note").textContent =
+        "qalerts references[] empty. We do not scrape >> greentext from Q’s own text.";
+    }
+    if ($("quote-plate-note")) $("quote-plate-note").textContent = "";
+    if ($("qcap-c1")) $("qcap-c1").textContent = "C1 quote";
+    if ($("qcap-c2")) $("qcap-c2").textContent = "C2 nested —";
+    if ($("qcap-c3")) $("qcap-c3").textContent = "C3 stamp —";
+    if ($("qcap-c4")) $("qcap-c4").textContent = "C4 Q text";
+  }
+
+  function paintQuotePeek(p) {
+    const cv = $("quote-peek");
+    const meta = $("quote-meta");
+    const textEl = $("quote-text");
+    const note = $("quote-note");
+    if (!quoteOn()) {
+      if (meta) meta.textContent = "";
+      if (textEl) textEl.textContent = "";
+      if (note) note.textContent = "";
+      return;
+    }
+    if (state.quoteMissing) {
+      clearQuoteInspector("sidecar missing");
+      if (note) note.textContent = "sidecar missing";
+      return;
+    }
+    const ref = p ? firstQuote(p.q) : null;
+    const qtext = p ? quoteTextOf(p.q) : "";
+    if (!ref || !qtext) {
+      clearQuoteInspector("This drop has no quoted board post.");
+      return;
+    }
+    const who = ref.name || "Anonymous";
+    const no = ref.id != null ? String(ref.id) : "—";
+    const stamp = [ref.est_iso, ref.est_hms, "EST"].filter(Boolean).join(" ");
+    if (meta) meta.textContent = `${who} No.${no} · ${stamp}`;
+    if (textEl) textEl.textContent = qtext;
+    if (note) {
+      const nested = nestedTextOf(p.q);
+      note.textContent =
+        state.quoteTape === "c1-only"
+          ? "C1 of the quoted board post (qalerts depth 2). Not a Q drop. Independent packing — not a claim that Q wrote quads."
+          : nested
+            ? `Four-symbol packing of the quoted board post. C1 text, C2 nested, C3 stamp (clipped). C4 ${c4Word()} is this Q drop’s C1. Independent packing — not a claim that Q wrote quads.`
+            : `Four-symbol packing of the quoted board post. C1 text, C3 stamp (clipped). This quote has no nested board post. C4 ${c4Word()} is this Q drop’s C1.`;
+    }
+    if (!cv) return;
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const w = Math.max(8, cv.clientWidth || cv.width || 300);
+    const h = Math.max(8, cv.clientHeight || cv.height || 160);
+    const bw = Math.max(1, Math.floor(w * dpr));
+    const bh = Math.max(1, Math.floor(h * dpr));
+    if (cv.width !== bw || cv.height !== bh) {
+      cv.width = bw;
+      cv.height = bh;
+    }
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = state.theme === "ebs" ? "#6a6a6a" : THEME.stage;
+    ctx.fillRect(0, 0, w, h);
+    const glyphs = quoteGlyphsOf(p.q);
+    if (!glyphs) {
+      clearQuoteInspector("This drop has no quoted board post.");
+      return;
+    }
+    const pad = 8;
+    const cell = state.cells.find((c) => c && c.post && c.post.q === p.q);
+    drawTapeInRect(ctx, pad, pad, w - pad * 2, h - pad * 2, layerGlyphs(glyphs), state.cell, ebsPaintCtx(cell, p), false, true);
+    paintQuotePlates(p);
   }
 
   function peekGlyphs(p) {
@@ -861,15 +1167,107 @@
     };
   }
 
-  function drawPlatesInRect(ctx, x, y, w, h, glyphs) {
+  function overlayC1Field(hostGlyphs, overlayGlyphs) {
+    const L = globalThis.QuadLayers;
+    const P = globalThis.QuadPage;
+    if (!L || !P || !hostGlyphs || !overlayGlyphs) return null;
+    const host = layerGlyphs(hostGlyphs);
+    const over = layerGlyphs(overlayGlyphs);
+    const src = L.tapeAlignedPlates(over).c1;
+    if (state.align === "stream" && state.tape !== "chip") {
+      const split = [];
+      for (let i = 0; i < src.length; i++) {
+        if (src[i] == null) continue;
+        split.push(src[i] ? 1 : 0);
+      }
+      const sz = L.streamSize(state.cell, split.length);
+      return {
+        bits: L.streamRaster(split, sz.w, sz.h),
+        spec: { id: "byte", cols: sz.w, rows: sz.h, n: sz.w * sz.h, packed: true },
+      };
+    }
+    const n = host.length;
+    const bits = new Array(n);
+    for (let i = 0; i < n; i++) bits[i] = i < src.length ? src[i] : null;
+    return { bits: bits, spec: P.cellSpec(state.cell, n, state.hideEmpty) };
+  }
+
+  function plateFieldsFor(glyphs, quoteGlyphs) {
+    const L = globalThis.QuadLayers;
+    const P = globalThis.QuadPage;
+    const ink = plateInks();
+    const qg = quoteGlyphs && quoteGlyphs.length ? quoteGlyphs : null;
+    if (!L || !P) {
+      return [
+        { on: state.plates.c1, field: plateField(glyphs, "c1"), ink: ink.c1 },
+        { on: state.plates.c2, field: plateField(glyphs, "c2"), ink: ink.c2 },
+        { on: state.plates.c3, field: plateField(glyphs, "c3"), ink: ink.c3 },
+        { on: state.plates.c4 && qg, field: qg ? overlayC1Field(glyphs, qg) : null, ink: ink.c4 },
+      ];
+    }
+    const g = layerGlyphs(glyphs);
+    const stream = state.align === "stream" && state.tape !== "chip";
+    let c1;
+    let c2;
+    let c3;
+    if (stream) {
+      c1 = plateField(glyphs, "c1");
+      c2 = plateField(glyphs, "c2");
+      c3 = plateField(glyphs, "c3");
+    } else {
+      const packed = L.tapeAlignedPlates(g);
+      const spec = P.cellSpec(state.cell, g.length, state.hideEmpty);
+      c1 = { bits: packed.c1, spec: spec };
+      c2 = { bits: packed.c2, spec: spec };
+      c3 = { bits: packed.c3, spec: spec };
+    }
+    return [
+      { on: state.plates.c1, field: c1, ink: ink.c1 },
+      { on: state.plates.c2, field: c2, ink: ink.c2 },
+      { on: state.plates.c3, field: c3, ink: ink.c3 },
+      { on: state.plates.c4 && qg, field: qg ? overlayC1Field(glyphs, qg) : null, ink: ink.c4 },
+    ];
+  }
+
+  function drawMixInRect(ctx, x, y, w, h, fields, ground) {
+    const enabled = (fields || []).filter((f) => f && f.on && f.field && f.field.bits);
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    const fill = state.comp === "multiply" ? "#ffffff" : ground != null ? ground : THEME.stage;
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, w, h);
+    if (!enabled.length) {
+      ctx.restore();
+      return;
+    }
+    if (state.comp === "multiply") {
+      ctx.globalCompositeOperation = "multiply";
+      for (let i = 0; i < enabled.length; i++) {
+        const f = enabled[i];
+        const tmp = flattenPlate(f.field, f.ink, Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+        ctx.drawImage(tmp, x, y, w, h);
+      }
+      ctx.globalCompositeOperation = "source-over";
+      ctx.restore();
+      return;
+    }
+    if (state.comp === "add") ctx.globalCompositeOperation = "lighter";
+    else if (state.comp === "screen") ctx.globalCompositeOperation = "screen";
+    else ctx.globalCompositeOperation = "source-over";
+    const inkOnly = state.comp !== "solo";
+    for (let i = 0; i < enabled.length; i++) {
+      const f = enabled[i];
+      blitBits(ctx, x, y, w, h, f.field.bits, f.field.spec, f.ink, fill, inkOnly);
+    }
+    ctx.globalCompositeOperation = "source-over";
+    ctx.restore();
+  }
+
+  function drawPlatesInRect(ctx, x, y, w, h, glyphs, quoteGlyphs) {
     const L = globalThis.QuadLayers;
     const P = globalThis.QuadPage;
     if (!L || !P) return;
-    const ink = {
-      c1: THEME.ink || PLATE_INK.c1,
-      c2: L.INK_C2 || PLATE_INK.c2,
-      c3: L.INK_C3 || PLATE_INK.c3,
-    };
+    const ink = plateInks();
     const keys = ["c1", "c2", "c3"];
     const g = layerGlyphs(glyphs);
     const stream = state.align === "stream" && state.tape !== "chip";
@@ -886,6 +1284,10 @@
       const field = stream ? plateField(glyphs, k) : { bits: packed[k], spec: spec };
       if (!field || !field.bits) continue;
       blitBits(ctx, x, y, w, h, field.bits, field.spec, ink[k], THEME.stage, true);
+    }
+    if (state.plates.c4 && quoteGlyphs && quoteGlyphs.length) {
+      const field = overlayC1Field(glyphs, quoteGlyphs);
+      if (field && field.bits) blitBits(ctx, x, y, w, h, field.bits, field.spec, ink.c4, THEME.stage, true);
     }
     ctx.restore();
   }
@@ -960,14 +1362,14 @@
     return cv;
   }
 
-  function paintMix(fields) {
-    const cv = $("plate-mix");
+  function paintMix(fields, canvasId) {
+    const cv = $(canvasId || "plate-mix");
     if (!cv) return;
     const box = sizePlateCanvas(cv, cv.clientWidth || 300, cv.clientHeight || 140);
     const ctx = box.ctx;
     ctx.setTransform(box.dpr, 0, 0, box.dpr, 0, 0);
     ctx.imageSmoothingEnabled = false;
-    const enabled = fields.filter((f) => f && f.on && f.field);
+    const enabled = (fields || []).filter((f) => f && f.on && f.field);
     ctx.fillStyle = state.comp === "multiply" ? "#ffffff" : THEME.stage;
     ctx.fillRect(0, 0, box.w, box.h);
     if (!enabled.length) return;
@@ -1072,10 +1474,11 @@
     blitRgbaField(box.ctx, 0, 0, box.w, box.h, rgba, cols, rows);
   }
 
-  function setPlateCaptions(c1, c2, c3) {
+  function setPlateCaptions(c1, c2, c3, c4) {
     if ($("cap-c1")) $("cap-c1").textContent = c1;
     if ($("cap-c2")) $("cap-c2").textContent = c2;
     if ($("cap-c3")) $("cap-c3").textContent = c3;
+    if ($("cap-c4")) $("cap-c4").textContent = c4 || "C4";
   }
 
   function syncShuffleBtn() {
@@ -1228,10 +1631,61 @@
     }
   }
 
+  function paintQuotePlates(p) {
+    const L = globalThis.QuadLayers;
+    if (!L || !quoteOn() || !p) return;
+    const qg = quoteGlyphsOf(p.q);
+    if (!qg) {
+      clearQuoteInspector("This drop has no quoted board post.");
+      return;
+    }
+    const c1 = plateField(qg, "c1");
+    const nested = state.quoteTape === "c1-only" ? null : nestedPlateField(p.q);
+    const c2 = nested;
+    const c3 = plateField(qg, "c3");
+    const qTape = (state.tapes && state.tapes[p.q]) || new Uint8Array([G_SQ0]);
+    const c4 = overlayC1Field(qg, qTape);
+    const ink = plateInks();
+    const ink1 = ink.c1;
+    const ink2 = ink.c2;
+    const ink3 = ink.c3;
+    const ink4 = ink.c4;
+    paintOnePlate("quote-c1", c1, ink1);
+    if (c2) paintOnePlate("quote-c2", c2, ink2);
+    else fillNamedCanvas("quote-c2", 96, 88);
+    paintOnePlate("quote-c3", c3, ink3);
+    paintOnePlate("quote-c4", c4, ink4);
+    paintMix(
+      [
+        { on: state.plates.c1, field: c1, ink: ink1 },
+        { on: state.plates.c2, field: c2, ink: ink2 },
+        { on: state.plates.c3, field: c3, ink: ink3 },
+        { on: state.plates.c4, field: c4, ink: ink4 },
+      ],
+      "quote-mix"
+    );
+    if ($("qcap-c1")) $("qcap-c1").textContent = "C1 quote";
+    if ($("qcap-c2")) {
+      $("qcap-c2").textContent =
+        state.quoteTape === "c1-only" ? "C2 —" : c2 ? "C2 nested" : "C2 nested —";
+    }
+    if ($("qcap-c3")) $("qcap-c3").textContent = state.quoteTape === "c1-only" ? "C3 —" : "C3 stamp";
+    if ($("qcap-c4")) $("qcap-c4").textContent = "C4 Q text";
+    if ($("quote-plate-note")) {
+      $("quote-plate-note").textContent =
+        state.quoteTape === "c1-only"
+          ? `C1 = quoted Anon. C2/C3 empty unless extras. C4 ${c4Word()} = this Q drop’s C1. Same plate inks as Layering.`
+          : c2
+            ? `C1 = quoted Anon. C2 = nested board post packed as its own C1 picture. C3 = quote HHMM stamp (clipped to C1 ones). C4 ${c4Word()} = this Q drop’s C1.`
+            : `C1 = quoted Anon. C2 nested — this quote has no nested board post. C3 = quote HHMM stamp (clipped to C1 ones). C4 ${c4Word()} = this Q drop’s C1.`;
+    }
+  }
+
   function paintPlates(p) {
     applyLayerChrome();
     syncShuffleBtn();
-    const show = state.layer === "peel" || state.layer === "stack" || state.layer === "diff";
+    const peelLike = state.layer === "peel" || (pageViewPlates() && state.layer === "off");
+    const show = peelLike || state.layer === "stack" || state.layer === "diff";
     if (!show) {
       const essayEl = $("essay-text");
       if (essayEl) {
@@ -1241,7 +1695,7 @@
       const note = $("plate-note");
       if (note) note.textContent = "";
       if ($("stack-score")) $("stack-score").hidden = true;
-      setPlateCaptions("C1", "C2", "C3");
+      setPlateCaptions("C1", "C2", "C3", "C4");
       return;
     }
     if (state.layer === "stack") {
@@ -1260,15 +1714,25 @@
     const c1 = plateField(glyphs, "c1");
     const c2 = plateField(glyphs, "c2");
     const c3 = plateField(glyphs, "c3");
-    const ink1 = THEME.ink || PLATE_INK.c1;
+    const ink = plateInks();
+    const ink1 = ink.c1;
+    const ink2 = ink.c2;
+    const ink3 = ink.c3;
+    const ink4 = ink.c4;
+    const qg = p ? quoteGlyphsOf(p.q) : null;
+    const c4 = qg ? overlayC1Field(glyphs, qg) : null;
     paintOnePlate("plate-c1", c1, ink1);
-    paintOnePlate("plate-c2", c2, L.INK_C2 || PLATE_INK.c2);
-    paintOnePlate("plate-c3", c3, L.INK_C3 || PLATE_INK.c3);
+    paintOnePlate("plate-c2", c2, ink2);
+    paintOnePlate("plate-c3", c3, ink3);
+    if (c4) paintOnePlate("plate-c4", c4, ink4);
+    else fillNamedCanvas("plate-c4", 96, 88);
     paintMix([
       { on: state.plates.c1, field: c1, ink: ink1 },
-      { on: state.plates.c2, field: c2, ink: L.INK_C2 || PLATE_INK.c2 },
-      { on: state.plates.c3, field: c3, ink: L.INK_C3 || PLATE_INK.c3 },
+      { on: state.plates.c2, field: c2, ink: ink2 },
+      { on: state.plates.c3, field: c3, ink: ink3 },
+      { on: state.plates.c4, field: c4, ink: ink4 },
     ]);
+    setPlateCaptions("C1", "C2", "C3", c4 ? "C4 quote" : "C4 —");
     const note = $("plate-note");
     if (note) {
       if (state.essay) {
@@ -1280,7 +1744,9 @@
       } else if (state.tape === "head8") {
         note.textContent = "First 8 ASCII bytes on C1. Extra plates follow whatever merge filled.";
       } else {
-        note.textContent = "C1 = post text. C2 = LOOP walk bits. C3 = HHMM stamp bits. Not TEXTPIC pictures.";
+        note.textContent = c4
+          ? `C1 = post text. C2 = LOOP walk bits. C3 = HHMM stamp bits. C4 ${c4Word()} = quoted Anon C1. Not TEXTPIC pictures.`
+          : "C1 = post text. C2 = LOOP walk bits. C3 = HHMM stamp bits. C4 — this drop has no quoted board post.";
       }
     }
     const essayEl = $("essay-text");
@@ -1296,6 +1762,173 @@
     }
   }
 
+  function applyCompOp(ctx, comp) {
+    if (comp === "add") ctx.globalCompositeOperation = "lighter";
+    else if (comp === "screen") ctx.globalCompositeOperation = "screen";
+    else if (comp === "multiply") ctx.globalCompositeOperation = "multiply";
+    else ctx.globalCompositeOperation = "source-over";
+  }
+
+  function selectedPlateFields(p) {
+    const L = globalThis.QuadLayers;
+    if (!L || !p) return [];
+    const glyphs = peekGlyphs(p);
+    const qg = quoteGlyphsOf(p.q);
+    const ink = plateInks();
+    return [
+      { on: state.plates.c1, field: plateField(glyphs, "c1"), ink: ink.c1 },
+      { on: state.plates.c2, field: plateField(glyphs, "c2"), ink: ink.c2 },
+      { on: state.plates.c3, field: plateField(glyphs, "c3"), ink: ink.c3 },
+      { on: state.plates.c4 && qg, field: qg ? overlayC1Field(glyphs, qg) : null, ink: ink.c4 },
+    ];
+  }
+
+  function quotePlateFields(p) {
+    const L = globalThis.QuadLayers;
+    if (!L || !p) return null;
+    const qg = quoteGlyphsOf(p.q);
+    if (!qg) return null;
+    const qTape = (state.tapes && state.tapes[p.q]) || new Uint8Array([G_SQ0]);
+    const ink = plateInks();
+    return [
+      { on: state.plates.c1, field: plateField(qg, "c1"), ink: ink.c1 },
+      { on: state.plates.c2, field: state.quoteTape === "c1-only" ? null : nestedPlateField(p.q), ink: ink.c2 },
+      { on: state.plates.c3, field: plateField(qg, "c3"), ink: ink.c3 },
+      { on: state.plates.c4, field: overlayC1Field(qg, qTape), ink: ink.c4 },
+    ];
+  }
+
+  function paintMixLayers(cv, baseFields, overFields, overlayAlpha) {
+    if (!cv) return;
+    const box = sizePlateCanvas(cv, cv.clientWidth || 300, cv.clientHeight || 160);
+    const ctx = box.ctx;
+    ctx.setTransform(box.dpr, 0, 0, box.dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = state.comp === "multiply" ? "#ffffff" : state.theme === "ebs" ? "#6a6a6a" : THEME.stage;
+    ctx.fillRect(0, 0, box.w, box.h);
+    const blitGroup = (fields, alpha) => {
+      const enabled = (fields || []).filter((f) => f && f.on && f.field);
+      if (!enabled.length) return;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      if (state.comp === "multiply") {
+        ctx.globalCompositeOperation = "multiply";
+        for (let i = 0; i < enabled.length; i++) {
+          const tmp = flattenPlate(enabled[i].field, enabled[i].ink, box.w, box.h);
+          ctx.drawImage(tmp, 0, 0, box.w, box.h);
+        }
+      } else {
+        applyCompOp(ctx, state.comp);
+        for (let i = 0; i < enabled.length; i++) {
+          const f = enabled[i];
+          blitBits(ctx, 0, 0, box.w, box.h, f.field.bits, f.field.spec, f.ink, THEME.stage, state.comp !== "solo");
+        }
+      }
+      ctx.restore();
+    };
+    blitGroup(baseFields, 1);
+    if (overFields) blitGroup(overFields, overlayAlpha);
+  }
+
+  function paintStackViews(p) {
+    const peekCv = $("stack-peek");
+    const mixCv = $("stack-mix");
+    const hasQuote = !!(p && quoteGlyphsOf(p.q));
+    if ($("stack-peek-title")) {
+      $("stack-peek-title").textContent = hasQuote ? "Selected + Initial post" : "Selected rectangle";
+    }
+    if ($("stack-mix-title")) {
+      $("stack-mix-title").textContent = hasQuote ? "Plates + Quote plates" : "Plates";
+    }
+    if (peekCv) {
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      const w = Math.max(8, peekCv.clientWidth || peekCv.width || 300);
+      const h = Math.max(8, peekCv.clientHeight || peekCv.height || 220);
+      const bw = Math.max(1, Math.floor(w * dpr));
+      const bh = Math.max(1, Math.floor(h * dpr));
+      if (peekCv.width !== bw || peekCv.height !== bh) {
+        peekCv.width = bw;
+        peekCv.height = bh;
+      }
+      const ctx = peekCv.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = state.theme === "ebs" ? "#6a6a6a" : THEME.stage;
+      ctx.fillRect(0, 0, w, h);
+      if (p) {
+        const glyphs = peekGlyphs(p);
+        const pad = 8;
+        const cell = state.cells.find((c) => c && c.post && c.post.q === p.q);
+        const paint = ebsPaintCtx(cell, p);
+        drawTapeInRect(ctx, pad, pad, w - pad * 2, h - pad * 2, glyphs, state.cell, paint);
+        const qg = quoteGlyphsOf(p.q);
+        if (qg) {
+          ctx.save();
+          applyCompOp(ctx, state.comp);
+          ctx.globalAlpha = plateMix();
+          drawTapeInRect(
+            ctx,
+            pad,
+            pad,
+            w - pad * 2,
+            h - pad * 2,
+            layerGlyphs(qg),
+            state.cell,
+            paint,
+            false,
+            true
+          );
+          ctx.restore();
+        }
+      }
+    }
+    paintMixLayers(mixCv, p ? selectedPlateFields(p) : [], hasQuote ? quotePlateFields(p) : null, plateMix());
+    paintStackCombo(peekCv, mixCv);
+    if ($("stack-peek-note")) {
+      $("stack-peek-note").textContent = hasQuote
+        ? "Selected rectangle layered with this drop’s initial post. Mix slider is overlay strength. Composite matches Layering."
+        : "This square has no initial post. Only the selected rectangle is shown — the previous quote is not reused.";
+    }
+    if ($("stack-mix-note")) {
+      $("stack-mix-note").textContent = hasQuote
+        ? "Q plates layered with this drop’s quote plates (C1 quote, C2 nested picture, C3 stamp, C4 Q text)."
+        : "This square has no quote plates. Only the selected plates are shown.";
+    }
+    if ($("stack-combo-note")) {
+      $("stack-combo-note").textContent =
+        "The first square layered with the second square. Mix slider is overlay strength. Composite matches Layering.";
+    }
+  }
+
+  function paintStackCombo(peekCv, mixCv) {
+    const cv = $("stack-combo");
+    if (!cv) return;
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const w = Math.max(8, cv.clientWidth || cv.width || 300);
+    const h = Math.max(8, cv.clientHeight || cv.height || 220);
+    const bw = Math.max(1, Math.floor(w * dpr));
+    const bh = Math.max(1, Math.floor(h * dpr));
+    if (cv.width !== bw || cv.height !== bh) {
+      cv.width = bw;
+      cv.height = bh;
+    }
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = state.comp === "multiply" ? "#ffffff" : state.theme === "ebs" ? "#6a6a6a" : THEME.stage;
+    ctx.fillRect(0, 0, w, h);
+    if (peekCv && peekCv.width && peekCv.height) {
+      ctx.drawImage(peekCv, 0, 0, peekCv.width, peekCv.height, 0, 0, w, h);
+    }
+    if (mixCv && mixCv.width && mixCv.height) {
+      ctx.save();
+      applyCompOp(ctx, state.comp);
+      ctx.globalAlpha = plateMix();
+      ctx.drawImage(mixCv, 0, 0, mixCv.width, mixCv.height, 0, 0, w, h);
+      ctx.restore();
+    }
+  }
+
   function renderInspector() {
     const p = state.byQ.get(state.selected);
     const sel = $("sel-readout");
@@ -1307,6 +1940,8 @@
       if (textEl) textEl.textContent = "—";
       paintPeek(null);
       paintPlates(null);
+      paintQuotePeek(null);
+      paintStackViews(null);
       return;
     }
     const glyphs = (state.tapes && state.tapes[p.q]) || new Uint8Array([G_SQ0]);
@@ -1330,6 +1965,8 @@
     }
     paintPeek(p);
     paintPlates(p);
+    paintQuotePeek(p);
+    paintStackViews(p);
     if ($("qnum") && document.activeElement !== $("qnum")) $("qnum").value = String(p.q);
   }
 
@@ -1340,6 +1977,8 @@
       extra += " EBS spectrum: each glyph walks ROYGBIV + white + black. Cell band follows the header stripe.";
     } else if (state.theme === "ebs" && state.ebsPaint === "toast") {
       extra += " EBS toast: hex is the four-symbol code. sq0=#901131 sq1=#319011 bar0=#113190 bar1=#903111. Cell ground #901171.";
+    } else if (state.theme === "ebs" && state.ebsPaint === "yolk") {
+      extra += " EBS yolk: Toast with bar1 yellow. sq0=#901131 sq1=#319011 bar0=#113190 bar1=#909011. Cell ground #901171.";
     } else if (state.theme === "ebs") {
       extra += " EBS meaning: white = square (C1=0), black = bar (C1=1). Cell color = hops to lock (red→violet). Hollow extra-bits (Code 2/3) take that hops color.";
     }
@@ -1356,13 +1995,21 @@
       const xf = pictureOn() && state.xform !== "none" ? " " + (XFORM_NOTE[state.xform] || "") : "";
       $("picture-note").textContent = pic + xf;
     }
+    if ($("view-note")) {
+      $("view-note").textContent = pageViewPlates()
+        ? "The middle is the same mosaic as Tape, inverted: each rectangle is that post’s plate mix (C1 / C2 / C3 / C4). Order, Weave, Picture, Cell, Align, Composite, and the plate checks still apply."
+        : "The middle is the tape mosaic: one packed rectangle per post.";
+    }
     if ($("peek-note")) {
       let peek = state.filledFrame
         ? "Blow-up packs the tape as a filled frame (one solid cell per glyph). The page itself always fits every post."
         : "Blow-up uses the same cell layout at a readable glyph size. The page itself always fits every post.";
-      if (state.layer === "peel") {
-        peek += " Plates under this blow-up are C1 / C2 / C3. They do not replace it.";
-        if (state.onPage === "under") peek += " On page: plates sit under every post in the middle.";
+      if (state.layer === "peel" || pageViewPlates()) {
+        peek += pageViewPlates()
+          ? " Plates under this blow-up are C1 / C2 / C3."
+          : " Plates under this blow-up are C1 / C2 / C3. They do not replace it.";
+        if (pageSquaresPlates()) peek += " On page: every middle rectangle is that post’s plate mix (Tape inverted).";
+        else if (state.onPage === "under") peek += " On page: plates sit under every post in the middle.";
         else if (state.onPage === "over") peek += " On page: plates sit over every post in the middle.";
       } else if (state.layer === "stack") {
         peek += " Stack is an independent average of the cell frame. The merged blow-up stays.";
@@ -1370,7 +2017,16 @@
         peek += " Diff is current Order vs its sibling as signed gray. The merged blow-up stays.";
       }
       if (state.essay) peek += " essay, not a find.";
-      if (state.shuffle && layerOn()) peek += " Shuffled (seed 421).";
+      if (state.shuffle && (layerOn() || pageViewPlates())) peek += " Shuffled (seed 421).";
+      if (state.quote === "peek") peek += " Initial post packed below, separately.";
+      if (pageQuoteOn()) {
+        peek +=
+          (state.layer === "peel" && (state.onPage === "under" || state.onPage === "over")) || pageViewPlates()
+            ? " Peel on-page ignored while Initial post is Under/Over."
+            : state.quote === "under"
+              ? " On page: quoted Anon C1 sits under every post that has a qalerts reference."
+              : " On page: quoted Anon C1 sits over every post that has a qalerts reference.";
+      }
       $("peek-note").textContent = peek;
     }
     if ($("layer-caption")) {
@@ -1388,6 +2044,13 @@
       } else {
         $("layer-later-note").textContent = "";
       }
+    }
+    if ($("quote-caption")) {
+      $("quote-caption").textContent = quoteOn()
+        ? state.quoteTape === "c1-only"
+          ? `C1 of the quoted board post (qalerts depth 2). C2/C3 empty. C4 ${c4Word()} is this Q drop. Independent packing — not a claim that Q wrote quads.`
+          : `Quoted Anon as four-symbol. C2 = nested board post, C3 = quote stamp, clipped to C1 slots. C4 ${c4Word()} = this Q drop. Independent packing — not a claim that Q wrote quads.`
+        : "";
     }
   }
 
@@ -1416,6 +2079,7 @@
     if (!state.plates.c1) parts.push("p1=0");
     if (!state.plates.c2) parts.push("p2=0");
     if (!state.plates.c3) parts.push("p3=0");
+    if (!state.plates.c4) parts.push("p4=0");
     if (state.mute.sq0) parts.push("m0=1");
     if (state.mute.sq1) parts.push("m1=1");
     if (state.mute.bar0) parts.push("m2=1");
@@ -1424,7 +2088,12 @@
     if (state.shuffle) parts.push("shuf=1");
     if (state.essay) parts.push("essay=1");
     if (state.onPage !== "off") parts.push("onpage=" + state.onPage);
+    if (state.pageView !== "tape") parts.push("view=" + state.pageView);
     if ((state.mix | 0) !== MIX_DEFAULT) parts.push("mix=" + (state.mix | 0));
+    if (state.quote !== "off") parts.push("quote=" + state.quote);
+    if (state.quote !== "off" && state.quoteTape === "c1-only") parts.push("qtape=c1");
+    if (state.rightTab === "stack") parts.push("rtab=stack");
+    if (state.swapC3C4) parts.push("c34=1");
     const next = "#" + parts.join("&");
     if (location.hash !== next) history.replaceState(null, "", next);
   }
@@ -1461,6 +2130,7 @@
     state.plates.c1 = map.p1 !== "0";
     state.plates.c2 = map.p2 !== "0";
     state.plates.c3 = map.p3 !== "0";
+    state.plates.c4 = map.p4 !== "0";
     state.mute.sq0 = map.m0 === "1";
     state.mute.sq1 = map.m1 === "1";
     state.mute.bar0 = map.m2 === "1";
@@ -1469,6 +2139,11 @@
     state.shuffle = map.shuf === "1";
     state.essay = map.essay === "1";
     state.onPage = map.onpage && ONPAGE_IDS.indexOf(map.onpage) >= 0 ? map.onpage : "off";
+    state.pageView = map.view && PAGE_VIEW_IDS.indexOf(map.view) >= 0 ? map.view : "tape";
+    state.quote = map.quote && QUOTE_IDS.indexOf(map.quote) >= 0 ? map.quote : "off";
+    state.quoteTape = map.qtape === "c1" || map.qtape === "c1-only" ? "c1-only" : "triple-text";
+    state.rightTab = map.rtab === "stack" ? "stack" : "inspect";
+    state.swapC3C4 = map.c34 === "1";
     if (map.mix != null && map.mix !== "") {
       const m = Number(map.mix);
       state.mix = isFinite(m) ? Math.max(0, Math.min(100, m | 0)) : MIX_DEFAULT;
@@ -1496,11 +2171,14 @@
     bind("comp", state.comp);
     bind("stack", state.stack);
     bind("onpage", state.onPage);
+    bind("quote", state.quote);
+    bind("quote-tape", state.quoteTape);
     applyTheme(state.theme);
     applyLayerChrome();
     if ($("plate-p1")) $("plate-p1").checked = !!state.plates.c1;
     if ($("plate-p2")) $("plate-p2").checked = !!state.plates.c2;
     if ($("plate-p3")) $("plate-p3").checked = !!state.plates.c3;
+    if ($("plate-p4")) $("plate-p4").checked = !!state.plates.c4;
     if ($("mute-sq0")) $("mute-sq0").checked = !!state.mute.sq0;
     if ($("mute-sq1")) $("mute-sq1").checked = !!state.mute.sq1;
     if ($("mute-bar0")) $("mute-bar0").checked = !!state.mute.bar0;
@@ -1510,6 +2188,7 @@
     if ($("hide-empty")) $("hide-empty").checked = state.hideEmpty;
     if ($("hide-solid")) $("hide-solid").checked = state.hideSolid;
     if ($("filled-frame")) $("filled-frame").checked = state.filledFrame;
+    if ($("swap-c34")) $("swap-c34").checked = !!state.swapC3C4;
     if ($("mix")) $("mix").value = String(state.mix | 0);
     if ($("mix-readout")) $("mix-readout").textContent = String(state.mix | 0);
     if ($("qnum")) $("qnum").value = String(state.selected);
@@ -1517,10 +2196,33 @@
     setNotes();
   }
 
+  function setPackStatus(packing) {
+    const st = $("pack-status");
+    if (!st) return;
+    if (packing) {
+      st.textContent = "packing…";
+      return;
+    }
+    const g = state.grid;
+    const n = state.ordered.length;
+    const solidN = state.hideSolid ? state.posts.length - n : 0;
+    const placed = g ? Math.min(n, g.slots) : n;
+    st.textContent = g
+      ? `fitted ${placed} rectangles in ${g.cols}×${g.rows}` +
+        (pictureOn() ? " (64×74 picture)" : "") +
+        (state.hideEmpty ? (g.waste ? ` (hid ${g.waste} empty)` : " (no empty)") : g.waste ? ` (${g.waste} empty)` : "") +
+        (solidN ? ` (hid ${solidN} solid)` : "") +
+        (n > g.slots ? ` (clipped ${n - g.slots})` : "") +
+        (layerOn() ? ` · layer ${state.layer}` : "") +
+        (pagePlatesOn() ? ` · on-page ${state.onPage}` : "") +
+        (pageSquaresPlates() ? " · plates mosaic" : "") +
+        (quoteOn() ? ` · quote ${state.quote}` : "")
+      : "—";
+  }
+
   function relayout(opts) {
     const o = opts || {};
-    const st = $("pack-status");
-    if (st) st.textContent = "packing…";
+    setPackStatus(true);
     if (o.tapes !== false) rebuildTapes();
     if (o.order !== false) rebuildOrder();
     rebuildGrid();
@@ -1528,21 +2230,7 @@
     draw();
     renderInspector();
     writeHash();
-    if (st) {
-      const g = state.grid;
-      const n = state.ordered.length;
-      const solidN = state.hideSolid ? state.posts.length - n : 0;
-      const placed = g ? Math.min(n, g.slots) : n;
-      st.textContent = g
-        ? `fitted ${placed} rectangles in ${g.cols}×${g.rows}` +
-          (pictureOn() ? " (64×74 picture)" : "") +
-          (state.hideEmpty ? (g.waste ? ` (hid ${g.waste} empty)` : " (no empty)") : g.waste ? ` (${g.waste} empty)` : "") +
-          (solidN ? ` (hid ${solidN} solid)` : "") +
-          (n > g.slots ? ` (clipped ${n - g.slots})` : "") +
-          (layerOn() ? ` · layer ${state.layer}` : "") +
-          (pagePlatesOn() ? ` · on-page ${state.onPage}` : "")
-        : "—";
-    }
+    setPackStatus(false);
   }
 
   function selectQ(q, fromClick) {
@@ -1606,6 +2294,18 @@
     } catch (err) {
       state.teaching = null;
       state.teachingGlyphs = null;
+    }
+    try {
+      const qres = await fetch("data/initial-posts.json");
+      if (!qres.ok) throw new Error("sidecar " + qres.status);
+      const qdata = await qres.json();
+      state.quotes = (qdata && qdata.posts) || {};
+      state.quoteMissing = false;
+      rebuildQuoteTapes();
+    } catch (err) {
+      state.quotes = {};
+      state.quoteTapes = null;
+      state.quoteMissing = true;
     }
     applyLayerChrome();
     relayout();
@@ -1695,6 +2395,15 @@
         relayout({ tapes: false, order: false });
       });
     }
+    if ($("swap-c34")) {
+      $("swap-c34").addEventListener("change", () => {
+        state.swapC3C4 = $("swap-c34").checked;
+        setNotes();
+        refreshPlateView();
+        renderInspector();
+        writeHash();
+      });
+    }
     if ($("layer")) {
       $("layer").addEventListener("change", () => {
         const v = $("layer").value;
@@ -1715,10 +2424,7 @@
         if (state.tape === "chip") state.align = "tape";
         applyLayerChrome();
         setNotes();
-        if (pagePlatesOn()) {
-          state.dirty = true;
-          draw();
-        }
+        refreshPlateView();
         renderInspector();
         writeHash();
       });
@@ -1727,10 +2433,7 @@
       $("comp").addEventListener("change", () => {
         const v = $("comp").value;
         state.comp = COMP_IDS.indexOf(v) >= 0 ? v : "solo";
-        if (pagePlatesOn()) {
-          state.dirty = true;
-          draw();
-        }
+        refreshPlateView();
         renderInspector();
         writeHash();
       });
@@ -1747,11 +2450,65 @@
         writeHash();
       });
     }
+    const setPageView = (id) => {
+      state.pageView = id === "plates" ? "plates" : "tape";
+      applyLayerChrome();
+      setNotes();
+      state.dirty = true;
+      draw();
+      renderInspector();
+      writeHash();
+      setPackStatus(false);
+    };
+    if ($("view-tape")) {
+      $("view-tape").addEventListener("click", () => setPageView("tape"));
+    }
+    if ($("view-plates")) {
+      $("view-plates").addEventListener("click", () => setPageView("plates"));
+    }
+    if ($("quote")) {
+      $("quote").addEventListener("change", () => {
+        const v = $("quote").value;
+        state.quote = QUOTE_IDS.indexOf(v) >= 0 ? v : "off";
+        applyLayerChrome();
+        setNotes();
+        state.dirty = true;
+        draw();
+        renderInspector();
+        writeHash();
+      });
+    }
+    if ($("quote-tape")) {
+      $("quote-tape").addEventListener("change", () => {
+        const v = $("quote-tape").value;
+        state.quoteTape = QUOTE_TAPE_IDS.indexOf(v) >= 0 ? v : "triple-text";
+        rebuildQuoteTapes();
+        applyLayerChrome();
+        setNotes();
+        state.dirty = true;
+        draw();
+        renderInspector();
+        writeHash();
+      });
+    }
+    const setRightTab = (id) => {
+      state.rightTab = id === "stack" ? "stack" : "inspect";
+      applyRightTab();
+      writeHash();
+      requestAnimationFrame(() => renderInspector());
+    };
+    if ($("tab-inspect")) {
+      $("tab-inspect").addEventListener("click", () => setRightTab("inspect"));
+    }
+    if ($("tab-stack")) {
+      $("tab-stack").addEventListener("click", () => setRightTab("stack"));
+    }
     if ($("mix")) {
       const onMix = () => {
         state.mix = Math.max(0, Math.min(100, Number($("mix").value) | 0));
         if ($("mix-readout")) $("mix-readout").textContent = String(state.mix);
-        if (pagePlatesOn()) scheduleMixDraw();
+        if (pageNeedsPlates() || pageQuoteOn()) scheduleMixDraw();
+        else paintStackViews(state.byQ.get(state.selected) || null);
         scheduleMixHash();
       };
       $("mix").addEventListener("input", onMix);
@@ -1769,10 +2526,7 @@
       if (!$(id)) return;
       $(id).addEventListener("change", () => {
         state.plates[key] = $(id).checked;
-        if (pagePlatesOn()) {
-          state.dirty = true;
-          draw();
-        }
+        refreshPlateView();
         renderInspector();
         writeHash();
       });
@@ -1780,6 +2534,7 @@
     plateBind("plate-p1", "c1");
     plateBind("plate-p2", "c2");
     plateBind("plate-p3", "c3");
+    plateBind("plate-p4", "c4");
     const muteBind = (id, key) => {
       if (!$(id)) return;
       $(id).addEventListener("change", () => {
@@ -1814,10 +2569,7 @@
       $("shuffle-sib").addEventListener("click", () => {
         state.shuffle = !state.shuffle;
         setNotes();
-        if (pagePlatesOn()) {
-          state.dirty = true;
-          draw();
-        }
+        refreshPlateView();
         renderInspector();
         writeHash();
       });
