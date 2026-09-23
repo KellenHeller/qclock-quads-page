@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-901131.svg)](LICENSE)
 [![Posts](https://img.shields.io/badge/Q%20posts-4%2C966-319011.svg)](#the-corpus)
 [![Runtime](https://img.shields.io/badge/runtime-static%20HTML%20%2B%20canvas-113190.svg)](#run-it)
-[![Default](https://img.shields.io/badge/default-3414%20paper-901171.svg)](#default-view)
+[![Default](https://img.shields.io/badge/default-q1%20EBS%20yolk-909011.svg)](#default-view)
 
 <p align="center">
   <strong><a href="https://kellenheller.github.io/qclock-quads-page/">Open the live page</a></strong>
@@ -33,26 +33,40 @@ This snapshot matches the local `:8558` four-symbol page.
 
 ## Default view
 
-Post **#3414** · Paper · cross frame **10×163** · triple-text · cell gaps on.
+Opening the page with no hash uses these controls. Post **#1** · Tape · EBS yolk · fish frame · columns · Peel · quote over.
 
 | | |
 |---|---|
+| Squares | Tape |
 | Order | Sequential q |
-| Weave | Raster L→R, T→B |
-| Picture | Off |
-| Cell | Cross frame 10×10 |
+| Weave | Columns (down, then next) |
+| #q | 1 |
+| Picture | Off (Order + Weave) |
+| Transform | None |
+| Cell | Fish frame 8×14 |
 | Tape | Triple-text (LOOP + stamp) |
-| Layering | Off |
-| Theme / paint | Paper · Meaning (paint only applies in EBS) |
+| Chips | spoke-hops |
+| Layering | Peel |
+| Initial post | Over the posts |
+| Quote tape | Triple-text (nested + stamp) |
+| Align | Stream (TEXTPIC) |
+| Composite | Screen |
+| On page | Under the posts |
+| Quote mix | 0 |
+| Plates | C1 C2 C3 C4 |
+| Swap C3/C4 | on |
+| Mute | off |
+| Theme / paint | EBS (please stand by) · Yolk `#909011` |
 | Color | Off (glyph ink) |
-| Cell gaps | on |
-| Hide empty / solid | off · off |
-| Filled frame | off |
+| Cell gaps | off |
+| q labels | off |
+| Hide empty / solid | on · on |
+| Filled frame | on |
 
 Shareable hash (written on load):
 
 ```
-#q=3414&order=q&weave=raster&cell=cross&tape=triple-text&chips=spoke-hops&color=off&theme=paper&paint=meaning
+#q=1&order=q&weave=columns&cell=fish&tape=triple-text&chips=spoke-hops&color=off&theme=ebs&paint=yolk&gaps=0&hide=1&solid=1&fill=1&layer=peel&align=stream&comp=screen&onpage=under&mix=0&quote=over&c34=1
 ```
 
 <p align="center">
@@ -130,7 +144,7 @@ Theme **EBS** (“please stand by”) has three paints. These are overlays. They
 
 **Filled frame** is a separate toggle (`fill=1`), not an EBS paint. On, the selected rectangle packs as a bitmap (one solid cell per glyph). Off keeps the current blow-up: real squares/bars when they fit, which Toast uses so the four hex inks stay separable.
 
-Other themes: Phosphor, Volt, Magma, Ion, Paper (default), Oak.
+Other themes: Phosphor, Volt, Magma, Ion, Paper, Oak. The page opens on EBS with Yolk paint.
 
 ---
 
@@ -171,17 +185,18 @@ Depth is at most 6. Display timezone and hash timezone are both `America/New_Yor
 
 **Tape** — C1 ASCII (full post) · triple-text · head 8 bytes · field chip (`spoke-hops` / `ampm-lock` / `even-q` / `timehash`).
 
-**Squares** (Tape / Plates, default Tape): Tape is the middle mosaic — one packed rectangle per post. **Plates** paints each rectangle as that post’s plate mix (C1 / C2 / C3 / C4) instead of the packed tape. Align / Composite / plate checkboxes still apply. Hash `view=plates`.
+**Squares** (Tape / Plates, launch Tape): Tape is the middle mosaic — one packed rectangle per post. **Plates** paints each rectangle as that post’s plate mix (C1 / C2 / C3 / C4) instead of the packed tape. Align / Composite / plate checkboxes still apply. Hash `view=plates`.
 
-**Layering** (default Off — the page is unchanged): Peel splits C1/C2/C3 onto inspector plates. Stream (TEXTPIC) packs C2/C3 into the Rodney frame (cross 10×10 / fish 8×14); the mix composites those same plates. **C4** is the quoted Anon’s C1 when Initial post is on. **On page** (Peel only) paints those plates under or over every post. Plate mix 0–100 is plate strength. Mute hides sq0/sq1/bar0/bar1 without changing packing. Composite is Solo / Add / Screen / Multiply. Essay loads the TEXTPIC teaching fish/cross into the peek only. **Stack** averages the current cell frame across posts. **Diff** is current Order vs a sibling order as signed gray. Hash `layer=` `onpage=` `mix=` `align=` `comp=` `p1=` `p4=` `m0=` `essay=` `shuf=` `stack=` `view=`.
+**Layering** (launch Peel): Peel splits C1/C2/C3 onto inspector plates. Stream (TEXTPIC) packs C2/C3 into the Rodney frame (cross 10×10 / fish 8×14); the mix composites those same plates. **C4** is the quoted Anon’s C1 when Initial post is on. **On page** (Peel only) paints those plates under or over every post. Plate mix 0–100 is plate strength when Initial post is off. Mute hides sq0/sq1/bar0/bar1 without changing packing. Composite is Solo / Add / Screen / Multiply. Essay loads the TEXTPIC teaching fish/cross into the peek only. **Stack** averages the current cell frame across posts. **Diff** is current Order vs a sibling order as signed gray. Hash `layer=` `onpage=` `mix=` `align=` `comp=` `p1=` `p4=` `m0=` `essay=` `shuf=` `stack=` `view=`.
 
-**Initial post** (default Off): packs the qalerts quoted Anon as four-symbol. Peek adds inspector canvases under the Q plates. Under / Over mix that tape into every rectangle that has a quote. Hash `quote=` `qtape=`. Sidecar `data/initial-posts.json`.
+**Initial post** (launch Over the posts): packs the qalerts quoted Anon as four-symbol. Peek adds inspector canvases under the Q plates. Under / Over mix that tape into every rectangle that has a quote. While Under or Over is on, the slider is quote strength (launch 0). Hash `quote=` `qtape=`. Sidecar `data/initial-posts.json`.
 
 **Toggles** — cell gaps · q labels · hide empty leftover slots · hide solid squares (image-only / blank posts such as 544 and 550) · filled frame.
 
 State lives in the URL hash, so a view is shareable.
 
 ```
+#q=1&order=q&weave=columns&cell=fish&tape=triple-text&chips=spoke-hops&color=off&theme=ebs&paint=yolk&gaps=0&hide=1&solid=1&fill=1&layer=peel&align=stream&comp=screen&onpage=under&mix=0&quote=over&c34=1
 #q=3414&cell=cross&tape=triple-text&theme=paper
 #q=3414&cell=cross&tape=triple-text&theme=ebs&paint=toast&fill=1
 #q=3414&cell=cross&tape=triple-text&theme=paper&layer=peel

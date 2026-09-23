@@ -428,12 +428,20 @@ def main() -> int:
     kinds = {g for g in glyphs_3414}
     check(kinds == {0, 1, 2, 3}, f"3414 four inks {kinds}")
     check(glyphs_3414.count(1) > 0 and glyphs_3414.count(3) > 0, "3414 extra-bit fills")
-    check('value="3414"' in html, "default selected 3414")
-    check('value="paper" selected' in html, "default paper theme")
-    check('value="cross" selected' in html, "default cross cell")
+    qnum = html.split('id="qnum"', 1)[1][:120]
+    check('value="1"' in qnum, "default selected q 1")
+    check('value="ebs" selected' in html, "default ebs theme")
+    check('value="yolk" selected' in html, "default yolk paint")
+    check('value="fish" selected' in html, "default fish cell")
+    check('value="columns" selected' in html, "default columns weave")
     check('value="triple-text" selected' in html, "default triple-text tape")
-    check('selected: 3414' in js and 'cell: "cross"' in js and 'tape: "triple-text"' in js, "js defaults match 3414")
-    check('theme: "paper"' in js, "js default paper")
+    check('id="hide-empty" type="checkbox" checked' in html, "hide empty default on")
+    check('id="hide-solid" type="checkbox" checked' in html, "hide solid default on")
+    check('id="filled-frame" type="checkbox" checked' in html, "filled frame default on")
+    check('id="gaps" type="checkbox" />' in html, "cell gaps default off")
+    check('selected: 1' in js and 'cell: "fish"' in js and 'tape: "triple-text"' in js, "js defaults match launch")
+    check('theme: "ebs"' in js and 'ebsPaint: "yolk"' in js, "js default ebs yolk")
+    check('weave: "columns"' in js, "js default columns")
 
     if errors:
         print("FAIL")

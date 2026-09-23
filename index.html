@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="paper">
+<html lang="en" data-theme="ebs">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/page.css?v=20260921h" />
 </head>
-<body data-theme="paper" data-layer="off" data-quote="off">
+<body data-theme="ebs" data-layer="peel" data-quote="over">
   <header>
     <h1>Four-symbol page</h1>
     <div class="meta" id="banner-meta">loading corpus…</div>
@@ -45,15 +45,15 @@
       </label>
       <label class="row">Weave
         <select id="weave">
-          <option value="raster" selected>Raster L→R, T→B</option>
+          <option value="raster">Raster L→R, T→B</option>
           <option value="boustrophedon">Boustrophedon (ox-plow)</option>
           <option value="spiral">Spiral (outer → in)</option>
-          <option value="columns">Columns (down, then next)</option>
+          <option value="columns" selected>Columns (down, then next)</option>
         </select>
       </label>
       <p class="note" id="order-note">Sequential q fills the page left to right, top to bottom.</p>
       <label class="row">#q
-        <input id="qnum" type="number" min="1" max="4966" value="3414" />
+        <input id="qnum" type="number" min="1" max="4966" value="1" />
       </label>
       <div class="btns">
         <button id="go" type="button">Select</button>
@@ -101,8 +101,8 @@
           <option value="spiral">Square spiral</option>
           <option value="weeks">Weeks (7-wide)</option>
           <option value="square">Nearest square</option>
-          <option value="fish">Fish frame 8×14</option>
-          <option value="cross" selected>Cross frame 10×10</option>
+          <option value="fish" selected>Fish frame 8×14</option>
+          <option value="cross">Cross frame 10×10</option>
         </select>
       </label>
       <label class="row">Tape
@@ -127,8 +127,8 @@
       <p class="note">Off leaves the current page. Peel splits C1 / C2 / C3 / C4. Mute hides glyph classes. Stack averages frames. Shuffle sibling on any view that looks like a picture. Independent packing — not a claim that Q wrote quads.</p>
       <label class="row">Layering
         <select id="layer">
-          <option value="off" selected>Off</option>
-          <option value="peel">Peel</option>
+          <option value="off">Off</option>
+          <option value="peel" selected>Peel</option>
           <option value="mute">Mute</option>
           <option value="stack">Stack</option>
           <option value="diff">Diff</option>
@@ -137,10 +137,10 @@
       <p class="note" id="layer-caption"></p>
       <label class="row">Initial post
         <select id="quote">
-          <option value="off" selected>Off</option>
+          <option value="off">Off</option>
           <option value="peek">Peek</option>
           <option value="under">Under the posts</option>
-          <option value="over">Over the posts</option>
+          <option value="over" selected>Over the posts</option>
         </select>
       </label>
       <label class="row layer-quote">Quote tape
@@ -153,27 +153,27 @@
       <p class="note layer-quote">Off leaves the current page. Peek / Under / Over use the same Align, Composite, Plates, Mute, and Shuffle as Layering. Independent packing — not a Q drop.</p>
       <label class="row layer-peel layer-quote-tune">Align
         <select id="align">
-          <option value="tape" selected>Tape (holes)</option>
-          <option value="stream">Stream (TEXTPIC)</option>
+          <option value="tape">Tape (holes)</option>
+          <option value="stream" selected>Stream (TEXTPIC)</option>
         </select>
       </label>
       <label class="row layer-comp layer-quote-tune">Composite
         <select id="comp">
-          <option value="solo" selected>Solo</option>
+          <option value="solo">Solo</option>
           <option value="add">Add</option>
-          <option value="screen">Screen</option>
+          <option value="screen" selected>Screen</option>
           <option value="multiply">Multiply</option>
         </select>
       </label>
       <label class="row layer-onpage">On page
         <select id="onpage">
-          <option value="off" selected>Off (inspector only)</option>
-          <option value="under">Under the posts</option>
+          <option value="off">Off (inspector only)</option>
+          <option value="under" selected>Under the posts</option>
           <option value="over">Over the posts</option>
         </select>
       </label>
-      <label class="row layer-peel layer-quote-mix"><span id="mix-label">Plate mix <b id="mix-readout">55</b></span>
-        <input id="mix" type="range" min="0" max="100" value="55" />
+      <label class="row layer-peel layer-quote-mix"><span id="mix-label">Quote mix <b id="mix-readout">0</b></span>
+        <input id="mix" type="range" min="0" max="100" value="0" />
       </label>
       <label class="row layer-peel layer-quote-tune"><span>Plates</span>
         <span class="checks">
@@ -183,7 +183,7 @@
           <label class="plate-c4-lab"><input id="plate-p4" type="checkbox" checked /> C4</label>
         </span>
       </label>
-      <label class="row"><span>Swap C3/C4</span><input id="swap-c34" type="checkbox" /></label>
+      <label class="row"><span>Swap C3/C4</span><input id="swap-c34" type="checkbox" checked /></label>
       <p class="note" id="swap-c34-note">Off: C3 blue / black, C4 green / black. On: C3 green / black, C4 blue / black.</p>
       <label class="row layer-mute layer-quote-tune"><span>Mute</span>
         <span class="checks">
@@ -214,17 +214,17 @@
           <option value="volt">Volt (hazard yellow)</option>
           <option value="magma">Magma</option>
           <option value="ion">Ion (blue / magenta)</option>
-          <option value="ebs">EBS (please stand by)</option>
-          <option value="paper" selected>Paper (light)</option>
+          <option value="ebs" selected>EBS (please stand by)</option>
+          <option value="paper">Paper (light)</option>
           <option value="oak">Oak (original)</option>
         </select>
       </label>
       <label class="row" id="ebs-paint-row">EBS paint
         <select id="ebs-paint">
-          <option value="meaning" selected>Meaning (C1 + hops)</option>
+          <option value="meaning">Meaning (C1 + hops)</option>
           <option value="spectrum">Spectrum (cycle 9)</option>
           <option value="toast">Toast #901131</option>
-          <option value="yolk">Yolk #909011</option>
+          <option value="yolk" selected>Yolk #909011</option>
         </select>
       </label>
       <label class="row">Color
@@ -235,11 +235,11 @@
           <option value="basin">Lock basin</option>
         </select>
       </label>
-      <label class="row"><span>Cell gaps</span><input id="gaps" type="checkbox" checked /></label>
+      <label class="row"><span>Cell gaps</span><input id="gaps" type="checkbox" /></label>
       <label class="row"><span>q labels</span><input id="labels" type="checkbox" /></label>
-      <label class="row"><span>Hide empty slots</span><input id="hide-empty" type="checkbox" /></label>
-      <label class="row"><span>Hide solid squares</span><input id="hide-solid" type="checkbox" /></label>
-      <label class="row"><span>Filled frame</span><input id="filled-frame" type="checkbox" /></label>
+      <label class="row"><span>Hide empty slots</span><input id="hide-empty" type="checkbox" checked /></label>
+      <label class="row"><span>Hide solid squares</span><input id="hide-solid" type="checkbox" checked /></label>
+      <label class="row"><span>Filled frame</span><input id="filled-frame" type="checkbox" checked /></label>
       <div class="legend">
         <span class="swatch-code"><i class="swatch sq0"></i>sq0</span>
         <span class="swatch-code"><i class="swatch sq1"></i>sq1</span>
@@ -254,7 +254,7 @@
         <span class="swatch-toast swatch-yolk-bar1"><i class="swatch yolk-bar1"></i>bar1 #909011</span>
         <span class="swatch-toast"><i class="swatch toast-cell"></i>cell #901171</span>
       </div>
-      <p class="note">Click a rectangle. Arrows move on the page. Same Drew/Rodney four-symbol codec.</p>
+      <p class="note">Click a rectangle. Arrows move on the page. Same codec as :8765.</p>
       <p class="status" id="pack-status">—</p>
     </aside>
     <div class="stage">
@@ -342,6 +342,6 @@
   <script src="js/quads.js?v=20260917a"></script>
   <script src="js/layouts.js?v=20260917a"></script>
   <script src="js/layers.js?v=20260921h"></script>
-  <script src="js/page.js?v=20260921h"></script>
+  <script src="js/page.js?v=20260923a"></script>
 </body>
 </html>

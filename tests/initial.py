@@ -43,7 +43,7 @@ def main() -> int:
     html = HTML.read_text()
     js = (ROOT / "js" / "page.js").read_text()
     check('id="quote"' in html, "quote control")
-    check('value="off" selected' in html.split('id="quote"')[1][:350], "quote default off")
+    check('value="over" selected' in html.split('id="quote"')[1][:500], "quote default over")
     check('id="quote-peek"' in html, "quote peek canvas")
     check('id="quote-tape"' in html, "quote tape control")
     check('id="plate-p4"' in html, "C4 checkbox")
