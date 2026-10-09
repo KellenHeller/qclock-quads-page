@@ -41,6 +41,7 @@ Opening the page with no hash uses these controls. Post **#1** · Tape · EBS yo
 | Order | Sequential q |
 | Weave | Columns (down, then next) |
 | #q | 1 |
+| Puzzle | Off |
 | Picture | Off (Order + Weave) |
 | Transform | None |
 | Cell | Fish frame 8×14 |
@@ -177,6 +178,8 @@ Depth is at most 6. Display timezone and hash timezone are both `America/New_Yor
 
 **Weave** — raster, boustrophedon (ox-plow), spiral (outer → in), columns.
 
+**Puzzle** (launch Off): Off leaves the current page. Focus fills the middle with one number’s prime-factor squares. Page docks those attachments on each mosaic square. Hash `puzzle=` `pzfilter=` `pzprime=` `pzcomp=` `pzunit=` `pword=` `pzpairs=` `pzomega=` `pzsg=` `pzorient=` `pzms=` only while Puzzle is on. Play is not hashed. Demos: `#q=491&puzzle=focus&pzsg=partner` · `#q=492&puzzle=focus`.
+
 **Picture** (separate from Order): off leaves Order + Weave as they are. Any other value locks the page to a **64×74** frame — the packed canvas from Hide empty + Hide solid (4,735 text posts + 1 remainder = 4,736). Glyphs inside each square do not change. Scans: lock 64×74, Morton Z-order, Hilbert, bit-reversal, zig-zag, even/odd interlace, 8×8 blocks, mod-37 interlace, Nipkow polar, shuffle (seed 421). Hash `pic=`.
 
 **Transform** (with Picture on): none, flip H/V, rotate 90/180/270, transpose 74×64. Hash `xform=`. Example: `#q=3414&hide=1&solid=1&pic=morton&xform=transp`.
@@ -197,6 +200,8 @@ State lives in the URL hash, so a view is shareable.
 
 ```
 #q=1&order=q&weave=columns&cell=fish&tape=triple-text&chips=spoke-hops&color=off&theme=ebs&paint=yolk&gaps=0&hide=1&solid=1&fill=1&layer=peel&align=stream&comp=screen&onpage=under&mix=0&quote=over&c34=1
+#q=491&puzzle=focus&pzsg=partner
+#q=492&puzzle=focus
 #q=3414&cell=cross&tape=triple-text&theme=paper
 #q=3414&cell=cross&tape=triple-text&theme=ebs&paint=toast&fill=1
 #q=3414&cell=cross&tape=triple-text&theme=paper&layer=peel

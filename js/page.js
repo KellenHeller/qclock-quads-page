@@ -161,7 +161,28 @@
     plateAtlas: null,
     dirty: true,
     packing: false,
+    puzzle: "off",
+    pzFilter: "all",
+    pzPrime: true,
+    pzComp: true,
+    pzUnit: true,
+    pzOrdinal: true,
+    pzPairs: true,
+    pzOmega: false,
+    pzSg: "off",
+    pzOrient: true,
+    pzMs: 700,
+    piece: null,
+    playTimer: 0,
+    puzzleTabs: [],
   };
+
+  const PUZZLE_MODES = ["off", "focus", "page"];
+  const PUZZLE_FILTERS = ["all", "prime", "comp", "sg", "safe", "chain"];
+  const PUZZLE_SG = ["off", "partner", "chain"];
+  const ORDINAL_PURPLE = "#7b4ea3";
+  let pieceCache = new Map();
+  let pieceCacheKey = "";
 
   let mixRaf = 0;
   let mixHashTimer = 0;
@@ -349,10 +370,202 @@
     if ($("view-plates")) $("view-plates").setAttribute("aria-pressed", pageViewPlates() ? "true" : "false");
   }
 
+  function puzzleOn() {
+    return state.puzzle === "focus" || state.puzzle === "page";
+  }
+
+  function puzzleFocus() {
+    return state.puzzle === "focus";
+  }
+
+  function puzzlePage() {
+    return state.puzzle === "page";
+  }
+
+  function puzzleFlags() {
+    return {
+      unit: !!state.pzUnit,
+      ordinal: !!state.pzOrdinal,
+      pairs: !!state.pzPairs,
+      omega: !!state.pzOmega,
+      sg: state.pzSg || "off",
+      orient: !!state.pzOrient,
+    };
+  }
+
+  function currentPiece(n) {
+    const QP = globalThis.QuadPrimes;
+    if (!QP) return null;
+    const key = [state.pzUnit, state.pzOrdinal, state.pzPairs, state.pzOmega, state.pzSg, state.pzOrient].join(":");
+    if (key !== pieceCacheKey) {
+      pieceCache = new Map();
+      pieceCacheKey = key;
+    }
+    const q = n | 0;
+    if (pieceCache.has(q)) return pieceCache.get(q);
+    const pc = QP.piece(q, puzzleFlags());
+    pieceCache.set(q, pc);
+    return pc;
+  }
+
+  function stopPuzzlePlay() {
+    if (state.playTimer) {
+      clearInterval(state.playTimer);
+      state.playTimer = 0;
+    }
+    const btn = $("puzzle-play");
+    if (btn) btn.setAttribute("aria-pressed", "false");
+  }
+
+  function cellQ(cell) {
+    if (!cell) return 0;
+    if (cell.q) return cell.q | 0;
+    return cell.post && cell.post.q ? cell.post.q | 0 : 0;
+  }
+
+  function roleStroke(role) {
+    if (role === "unit") return cssVar("--ink") || THEME.ink;
+    if (role === "ordinal") return ORDINAL_PURPLE;
+    if (role === "pair-small" || role === "pair-large") return THEME.teal;
+    if (role === "omega") return THEME.sage;
+    if (role === "sg-partner" || role === "sg-germain" || role === "chain") return THEME.crimson;
+    if (role === "ghost") return cssVar("--faint") || THEME.muted;
+    return THEME.gold;
+  }
+
+  function joinStroke(kind) {
+    if (kind === "ordinal") return ORDINAL_PURPLE;
+    if (kind === "sg") return THEME.crimson;
+    if (kind === "omega") return THEME.sage;
+    return THEME.teal;
+  }
+
+  function walkList() {
+    const QP = globalThis.QuadPrimes;
+    if (!QP) return [];
+    const filter = state.pzFilter || "all";
+    const showPrime = state.pzPrime !== false;
+    const showComp = state.pzComp !== false;
+    const accept = (n) => {
+      n = n | 0;
+      if (n < 1 || n > 4966) return false;
+      const post = state.byQ.get(n);
+      if (!post) return false;
+      if (state.hideSolid && isSolidPost(post)) return false;
+      const kind = QP.kindOf(n);
+      if (kind === "prime" && !showPrime) return false;
+      if (kind === "composite" && !showComp) return false;
+      if (filter === "prime") return kind === "prime";
+      if (filter === "comp") return kind === "composite";
+      if (filter === "sg") return QP.isSophieGermain(n);
+      if (filter === "safe") return QP.isSafeprime(n);
+      if (filter === "chain") return QP.CHAIN_HEADS.indexOf(n) >= 0;
+      return true;
+    };
+    if (filter === "chain") {
+      return QP.CHAIN_HEADS.filter(accept);
+    }
+    const out = [];
+    const ordered = state.ordered || [];
+    for (let i = 0; i < ordered.length; i++) {
+      const q = ordered[i].q;
+      if (accept(q)) out.push(q);
+    }
+    return out;
+  }
+
+  function puzzleStep(dir) {
+    const list = walkList();
+    if (!list.length) return;
+    const cur = state.selected | 0;
+    let i = list.indexOf(cur);
+    let next;
+    if (i < 0) next = dir >= 0 ? list[0] : list[list.length - 1];
+    else next = list[(i + dir + list.length) % list.length];
+    if (next) selectQ(next);
+  }
+
+  function togglePuzzlePlay() {
+    if (state.playTimer) {
+      stopPuzzlePlay();
+      return;
+    }
+    if (!puzzleOn()) return;
+    const ms = Math.max(200, Math.min(2000, state.pzMs | 0));
+    state.playTimer = setInterval(() => puzzleStep(1), ms);
+    const btn = $("puzzle-play");
+    if (btn) btn.setAttribute("aria-pressed", "true");
+  }
+
+  function applyPuzzleChrome() {
+    document.body.dataset.puzzle = state.puzzle || "off";
+    const focus = puzzleFocus();
+    const inert = ["weave", "picture", "xform", "hide-empty"];
+    for (let i = 0; i < inert.length; i++) {
+      const el = $(inert[i]);
+      if (!el) continue;
+      el.disabled = focus;
+      if (focus) el.setAttribute("aria-disabled", "true");
+      else el.removeAttribute("aria-disabled");
+    }
+    if (!puzzleOn()) stopPuzzlePlay();
+    if ($("puzzle-speed")) $("puzzle-speed").value = String(state.pzMs | 0);
+    if ($("puzzle-speed-readout")) $("puzzle-speed-readout").textContent = String(state.pzMs | 0);
+  }
+
+  function withCellOrient(ctx, x, y, w, h, rot, flipH, fn) {
+    const r = ((rot | 0) % 4 + 4) % 4;
+    if (!r && !flipH) {
+      fn(ctx, x, y, w, h);
+      return;
+    }
+    ctx.save();
+    ctx.translate(x + w / 2, y + h / 2);
+    if (r) ctx.rotate((r * Math.PI) / 2);
+    if (flipH) ctx.scale(-1, 1);
+    fn(ctx, -w / 2, -h / 2, w, h);
+    ctx.restore();
+  }
+
+  function puzzleNoteText() {
+    const QP = globalThis.QuadPrimes;
+    const pc = state.piece;
+    let note =
+      "Off leaves the current page. Focus fills the middle with one number and the squares that attach to it. Page keeps the mosaic and docks those attachments on each square.";
+    if (state.puzzle === "off") {
+      return note + " Independent packing — not a claim that Q wrote quads.";
+    }
+    if (puzzleFocus()) {
+      note = "Focus is one piece, not the 4,966 mosaic. Weave, Picture, Transform, and Hide empty are inert.";
+      if (pc && QP) {
+        const kind = pc.kind;
+        const n = pc.n;
+        if (kind === "prime") {
+          note += ` Home ${n} is prime · π ${pc.primeIndex}`;
+          if (pc.sophieIndex) note += ` · SG ${pc.sophieIndex} · 2×${n}+1 = ${pc.safePartner}`;
+        } else if (kind === "composite") {
+          note += ` Home ${n} is composite · rank ${pc.compositeIndex} · ${QP.factorString(n)} · ω ${pc.omega} Ω ${pc.Omega}`;
+        } else if (kind === "unit") {
+          note += " Home 1 is the unit. Other pieces attach 1; this piece is a single square.";
+        }
+      }
+      note += " Arrows walk the filtered homes.";
+    } else if (puzzlePage()) {
+      note = "Page keeps Order / Weave / Picture. Tabs on each filtered home dock the same attachments Focus would zoom. Click a tab to select that q.";
+    }
+    const muteFlags = !!(state.mute.sq0 || state.mute.sq1 || state.mute.bar0 || state.mute.bar1);
+    if (pageSquaresPlates() && (muteFlags || muteOn() || pageQuoteOn())) {
+      note += " Plates still ignore Mute / quote on the mosaic; Focus uses that same blit.";
+    }
+    note += " Independent packing — not a claim that Q wrote quads.";
+    return note;
+  }
+
   function applyLayerChrome() {
     document.body.dataset.layer = state.layer || "off";
     document.body.dataset.quote = state.quote || "off";
     document.body.dataset.view = state.pageView || "tape";
+    applyPuzzleChrome();
     applyRightTab();
     syncViewSwitch();
     const plates = $("plates-block");
@@ -397,6 +610,68 @@
     const sz = stageSize();
     const n = state.ordered.length || 1;
     const P = globalThis.QuadPage;
+    state.puzzleTabs = [];
+    if (puzzleFocus()) {
+      const pc = currentPiece(state.selected);
+      state.piece = pc;
+      const bb = (pc && pc.bbox) || { minX: 0, minY: 0, maxX: 0, maxY: 0, w: 1, h: 1 };
+      const cols = Math.max(1, bb.w | 0);
+      const rows = Math.max(1, bb.h | 0);
+      state.grid = {
+        cols: cols,
+        rows: rows,
+        cellW: sz.w / cols,
+        cellH: sz.h / rows,
+        slots: cols * rows,
+        n: pc && pc.cells ? pc.cells.length : 1,
+        packed: false,
+        weave: "raster",
+        waste: 0,
+        puzzle: true,
+        minX: bb.minX | 0,
+        minY: bb.minY | 0,
+      };
+      const g = state.grid;
+      const cells = new Array(g.cols * g.rows);
+      for (let i = 0; i < cells.length; i++) cells[i] = null;
+      const list = (pc && pc.cells) || [];
+      for (let i = 0; i < list.length; i++) {
+        const c = list[i];
+        const col = c.x - g.minX;
+        const row = c.y - g.minY;
+        if (col < 0 || row < 0 || col >= g.cols || row >= g.rows) continue;
+        const post = c.ghost ? null : state.byQ.get(c.q) || null;
+        cells[row * g.cols + col] = {
+          post: post,
+          q: c.q,
+          seq: i,
+          col: col,
+          row: row,
+          role: c.role,
+          rot: c.rot | 0,
+          flipH: !!c.flipH,
+          ghost: !!c.ghost,
+          px: c.x,
+          py: c.y,
+        };
+      }
+      state.cells = cells;
+      const el = $("grid-readout");
+      if (el && pc) {
+        const QP = globalThis.QuadPrimes;
+        let extra = `puzzle #${pc.n} · ${pc.cells.length} cells · ${pc.kind}`;
+        if (pc.kind === "prime") {
+          extra += ` · π ${pc.primeIndex}`;
+          if (pc.sophieIndex) extra += ` · SG ${pc.sophieIndex}`;
+        } else if (pc.kind === "composite") {
+          extra += ` · rank ${pc.compositeIndex}`;
+          if (QP) extra += ` · ${QP.factorString(pc.n)}`;
+        }
+        el.textContent = extra;
+      }
+      return;
+    }
+    state.piece = currentPiece(state.selected);
     if (pictureOn()) {
       const dim = P.xformSize(state.xform);
       state.grid = P.lockedGrid(dim.cols, dim.rows, n, sz.w, sz.h);
@@ -413,7 +688,20 @@
     for (let i = 0; i < limit; i++) {
       const pos = P.pictureSlot(i, g, state.picture, state.weave, state.xform);
       const idx = pos.row * g.cols + pos.col;
-      if (idx >= 0 && idx < cells.length) cells[idx] = { post: state.ordered[i], seq: i, col: pos.col, row: pos.row };
+      if (idx >= 0 && idx < cells.length) {
+        const post = state.ordered[i];
+        let rot = 0;
+        let flipH = false;
+        if (puzzlePage() && state.pzOrient) {
+          const pc = currentPiece(post.q);
+          const self = pc && pc.cells && pc.cells[0];
+          if (self && self.role === "self") {
+            rot = self.rot | 0;
+            flipH = !!self.flipH;
+          }
+        }
+        cells[idx] = { post: post, q: post.q, seq: i, col: pos.col, row: pos.row, rot: rot, flipH: flipH };
+      }
     }
     state.cells = cells;
     const el = $("grid-readout");
@@ -424,7 +712,8 @@
       const solid = solidN ? ` · hid ${solidN} solid` : "";
       const pic = pictureOn() ? " · 64×74 picture" : "";
       const clip = n > g.slots ? ` · clipped ${n - g.slots}` : "";
-      el.textContent = `${g.cols}×${g.rows} · ${g.cellW.toFixed(1)}×${g.cellH.toFixed(1)} px · ${Math.min(n, g.slots)} posts${extra}${solid}${pic}${clip}`;
+      const pz = puzzlePage() ? " · puzzle tabs" : "";
+      el.textContent = `${g.cols}×${g.rows} · ${g.cellW.toFixed(1)}×${g.cellH.toFixed(1)} px · ${Math.min(n, g.slots)} posts${extra}${solid}${pic}${clip}${pz}`;
     }
   }
 
@@ -680,34 +969,32 @@
     ctx.drawImage(blitScratch, 0, 0, cols, rows, x, y, w, h);
   }
 
+  function paintGlyphsInRect(ctx, x, y, w, h, glyphs, spec, paint, skipMute, forQuote) {
+    const n = glyphs && glyphs.length ? glyphs.length : 0;
+    if (!n || !spec || !(spec.cols | 0) || !(spec.rows | 0)) return;
+    const ctxp = paint && typeof paint === "object" ? paint : { hops: paint | 0, band: 0 };
+    const gw = w / spec.cols;
+    const gh = h / spec.rows;
+    if (!state.filledFrame && gw >= 3 && gh >= 3) {
+      const mask = skipMute ? null : muteMaskFor(glyphs, forQuote);
+      for (let i = 0; i < n; i++) {
+        if (mask && !mask[i]) continue;
+        const p = globalThis.QuadPage.cellXY(i, spec);
+        drawGlyph(ctx, x + p.c * gw, y + p.r * gh, gw, gh, glyphs[i], glyphPaint(glyphs[i], i, ctxp));
+      }
+      return;
+    }
+    blitTape(ctx, x, y, w, h, glyphs, spec, ctxp, skipMute, forQuote);
+  }
+
   function drawTapeInRect(ctx, x, y, w, h, glyphs, cellKind, paint, skipMute, forQuote) {
     const n = glyphs && glyphs.length ? glyphs.length : 0;
     if (!n) return;
-    const ctxp = paint && typeof paint === "object" ? paint : { hops: paint | 0, band: 0 };
-    if (n === 1) {
-      const mask1 = skipMute ? null : muteMaskFor(glyphs, forQuote);
-      if (mask1 && !mask1[0]) return;
-      drawGlyph(ctx, x, y, w, h, glyphs[0], glyphPaint(glyphs[0], 0, ctxp));
-      return;
-    }
-    const spec = globalThis.QuadPage.cellSpec(cellKind, n, state.hideEmpty);
-    const gw = w / spec.cols;
-    const gh = h / spec.rows;
-    // Page-scale overview stays a 1px blit. Off (default): the inspector
-    // peek draws real squares/bars when they fit — Toast needs that or
-    // the four hex inks collapse. On (Filled frame): blit every tape the
-    // way Meaning does, one solid cell per glyph, stretched to the box.
-    const tiny = gw < 3 || gh < 3;
-    if (state.filledFrame || tiny || (n > 64 && !toastOn())) {
-      blitTape(ctx, x, y, w, h, glyphs, spec, ctxp, skipMute, forQuote);
-      return;
-    }
-    const mask = skipMute ? null : muteMaskFor(glyphs, forQuote);
-    for (let i = 0; i < n; i++) {
-      if (mask && !mask[i]) continue;
-      const p = globalThis.QuadPage.cellXY(i, spec);
-      drawGlyph(ctx, x + p.c * gw, y + p.r * gh, gw, gh, glyphs[i], glyphPaint(glyphs[i], i, ctxp));
-    }
+    const spec =
+      n === 1
+        ? { id: cellKind || "byte", cols: 1, rows: 1, n: 1 }
+        : globalThis.QuadPage.cellSpec(cellKind, n, state.hideEmpty);
+    paintGlyphsInRect(ctx, x, y, w, h, glyphs, spec, paint, skipMute, forQuote);
   }
 
   function firstQuote(q) {
@@ -786,7 +1073,7 @@
     let clipped = quoteGlyphs;
     if (n < quoteGlyphs.length) clipped = quoteGlyphs.subarray ? quoteGlyphs.subarray(0, n) : quoteGlyphs.slice(0, n);
     if (state.shuffle) clipped = layerGlyphs(clipped);
-    blitTape(ctx, x, y, w, h, clipped, spec, paint, false, true);
+    paintGlyphsInRect(ctx, x, y, w, h, clipped, spec, paint, false, true);
   }
 
   function prepLayerCanvas(existing, bw, bh, dpr, opaque) {
@@ -861,6 +1148,26 @@
       const y = r.y + gap;
       const w = Math.max(0.8, r.w - gap * 2);
       const h = Math.max(0.8, r.h - gap * 2);
+      if (cell.ghost) {
+        gctx.save();
+        gctx.fillStyle = "rgba(127,127,127,0.12)";
+        gctx.fillRect(x, y, w, h);
+        gctx.strokeStyle = cssVar("--faint") || THEME.muted;
+        gctx.setLineDash([3, 3]);
+        gctx.lineWidth = 1;
+        gctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+        gctx.setLineDash([]);
+        gctx.fillStyle = cssVar("--faint") || THEME.muted;
+        gctx.font = `${Math.max(9, Math.min(16, h * 0.28))}px "IBM Plex Mono", monospace`;
+        gctx.textBaseline = "middle";
+        gctx.textAlign = "center";
+        gctx.fillText(String(cell.q), x + w / 2, y + h / 2);
+        gctx.restore();
+        continue;
+      }
+      if (!cell.post) continue;
+      const rot = puzzleOn() && state.pzOrient ? cell.rot | 0 : 0;
+      const flipH = puzzleOn() && state.pzOrient ? !!cell.flipH : false;
       gctx.fillStyle = cellFill(cell.post, cell);
       gctx.fillRect(x, y, w, h);
       const glyphs = state.tapes[cell.post.q] || new Uint8Array([G_SQ0]);
@@ -870,45 +1177,202 @@
       const tw = w - 0.8;
       const th = Math.max(1, tapeH - 0.8);
       const paint = ebsPaintCtx(cell, cell.post);
+      const qg = quoteGlyphsOf(cell.post.q);
       if (pageSquaresPlates()) {
-        drawMixInRect(gctx, tx, ty, tw, th, plateFieldsFor(glyphs, quoteGlyphsOf(cell.post.q)), cellFill(cell.post, cell));
+        withCellOrient(gctx, tx, ty, tw, th, rot, flipH, (c, xx, yy, ww, hh) => {
+          drawMixInRect(c, xx, yy, ww, hh, plateFieldsFor(glyphs, qg), cellFill(cell.post, cell));
+        });
       } else if (split) {
-        drawTapeInRect(xctx, tx, ty, tw, th, glyphs, state.cell, paint);
-        if (pctx) drawPlatesInRect(pctx, tx, ty, tw, th, glyphs, quoteGlyphsOf(cell.post.q));
-        if (qctx) {
-          const qg = quoteGlyphsOf(cell.post.q);
-          if (qg) drawQuoteInRect(qctx, tx, ty, tw, th, qg, glyphs, paint);
+        withCellOrient(xctx, tx, ty, tw, th, rot, flipH, (c, xx, yy, ww, hh) => {
+          drawTapeInRect(c, xx, yy, ww, hh, glyphs, state.cell, paint);
+        });
+        if (pctx) {
+          withCellOrient(pctx, tx, ty, tw, th, rot, flipH, (c, xx, yy, ww, hh) => {
+            drawPlatesInRect(c, xx, yy, ww, hh, glyphs, qg);
+          });
+        }
+        if (qctx && qg) {
+          withCellOrient(qctx, tx, ty, tw, th, rot, flipH, (c, xx, yy, ww, hh) => {
+            drawQuoteInRect(c, xx, yy, ww, hh, qg, glyphs, paint);
+          });
         }
       } else {
-        drawTapeInRect(gctx, tx, ty, tw, th, glyphs, state.cell, paint);
+        withCellOrient(gctx, tx, ty, tw, th, rot, flipH, (c, xx, yy, ww, hh) => {
+          drawTapeInRect(c, xx, yy, ww, hh, glyphs, state.cell, paint);
+        });
       }
       if (labelOk) {
         gctx.fillStyle = THEME.gold2;
         gctx.fillText(String(cell.post.q), x + 2, y + h - 10);
       }
     }
+    if (puzzlePage()) paintPuzzleTabs(gctx, g, sz, gap, labelOk);
     state.dirty = false;
+  }
+
+  function tabSizeFor(g) {
+    const t = Math.min(g.cellW, g.cellH) * 0.28;
+    return Math.max(4, Math.min(14, t));
+  }
+
+  function paintPuzzleTabs(gctx, g, sz, gap, labelOk) {
+    const walk = new Set(walkList());
+    const tabs = [];
+    const tab = tabSizeFor(g);
+    gctx.save();
+    gctx.beginPath();
+    gctx.rect(0, 0, sz.w, sz.h);
+    gctx.clip();
+    for (let i = 0; i < state.cells.length; i++) {
+      const cell = state.cells[i];
+      if (!cell || !cell.post) continue;
+      const homeQ = cell.post.q;
+      if (!walk.has(homeQ)) continue;
+      const pc = currentPiece(homeQ);
+      if (!pc) continue;
+      const r = globalThis.QuadPage.cellRect(cell.col, cell.row, g);
+      for (let k = 0; k < pc.cells.length; k++) {
+        const att = pc.cells[k];
+        if (att.role === "self") continue;
+        const man = Math.abs(att.x) + Math.abs(att.y);
+        if (man !== 1) continue;
+        let tx = r.x + (r.w - tab) / 2;
+        let ty = r.y + (r.h - tab) / 2;
+        if (att.x === 1 && att.y === 0) tx = r.x + r.w - tab / 2;
+        else if (att.x === -1 && att.y === 0) tx = r.x - tab / 2;
+        else if (att.x === 0 && att.y === 1) ty = r.y + r.h - tab / 2;
+        else if (att.x === 0 && att.y === -1) ty = r.y - tab / 2;
+        const fillPost = att.ghost ? null : state.byQ.get(att.q);
+        gctx.fillStyle = fillPost ? cellFill(fillPost, cell) : "rgba(127,127,127,0.18)";
+        gctx.fillRect(tx, ty, tab, tab);
+        gctx.strokeStyle = roleStroke(att.role);
+        gctx.lineWidth = 1;
+        if (att.ghost) gctx.setLineDash([2, 2]);
+        gctx.strokeRect(tx + 0.5, ty + 0.5, tab - 1, tab - 1);
+        gctx.setLineDash([]);
+        if (labelOk || tab >= 10) {
+          gctx.fillStyle = THEME.gold2;
+          gctx.font = `${Math.max(6, Math.min(9, tab * 0.7))}px "IBM Plex Mono", monospace`;
+          gctx.textAlign = "center";
+          gctx.textBaseline = "middle";
+          gctx.fillText(String(att.q), tx + tab / 2, ty + tab / 2);
+        }
+        tabs.push({ q: att.q, ghost: !!att.ghost, x: tx, y: ty, w: tab, h: tab, home: homeQ });
+      }
+    }
+    gctx.restore();
+    state.puzzleTabs = tabs;
+  }
+
+  function hitTabAt(cssX, cssY) {
+    const tabs = state.puzzleTabs || [];
+    for (let i = tabs.length - 1; i >= 0; i--) {
+      const t = tabs[i];
+      if (cssX >= t.x && cssX < t.x + t.w && cssY >= t.y && cssY < t.y + t.h) return t;
+    }
+    return null;
   }
 
   function hitAt(cssX, cssY) {
     const g = state.grid;
     if (!g) return null;
+    if (puzzlePage()) {
+      const tab = hitTabAt(cssX, cssY);
+      if (tab) {
+        if (tab.ghost) return { q: tab.q, ghost: true, post: null, tab: true };
+        const post = state.byQ.get(tab.q);
+        if (post) return { post: post, q: tab.q, tab: true, ghost: false };
+      }
+    }
     const pos = globalThis.QuadPage.hitPos(cssX, cssY, g);
     if (!pos) return null;
     return state.cells[pos.row * g.cols + pos.col] || null;
   }
 
+  function drawJoinBar(ctx, ra, rb, color) {
+    const ax = ra.x + ra.w / 2;
+    const ay = ra.y + ra.h / 2;
+    const bx = rb.x + rb.w / 2;
+    const by = rb.y + rb.h / 2;
+    const mx = (ax + bx) / 2;
+    const my = (ay + by) / 2;
+    const horiz = Math.abs(ax - bx) > Math.abs(ay - by);
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (horiz) {
+      const len = Math.min(ra.w, rb.w) * 0.35;
+      ctx.moveTo(mx - len / 2, my);
+      ctx.lineTo(mx + len / 2, my);
+    } else {
+      const len = Math.min(ra.h, rb.h) * 0.35;
+      ctx.moveTo(mx, my - len / 2);
+      ctx.lineTo(mx, my + len / 2);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawOverlay(ctx, w, h) {
     const g = state.grid;
     if (!g) return;
-    const marks = [state.hover, state.cells.find((c) => c && c.post.q === state.selected)];
+    if (puzzleFocus() && state.piece) {
+      const byXY = new Map();
+      for (let i = 0; i < state.cells.length; i++) {
+        const cell = state.cells[i];
+        if (!cell) continue;
+        byXY.set(cell.col + ":" + cell.row, cell);
+        const r = globalThis.QuadPage.cellRect(cell.col, cell.row, g);
+        const role = cell.role || "self";
+        ctx.save();
+        ctx.strokeStyle = roleStroke(role);
+        ctx.lineWidth = role === "self" ? 2 : 1;
+        if (cell.ghost) ctx.setLineDash([3, 3]);
+        if (role === "unit") ctx.globalAlpha = 0.7;
+        ctx.strokeRect(r.x + 0.6, r.y + 0.6, r.w - 1.2, r.h - 1.2);
+        ctx.restore();
+      }
+      const joins = state.piece.joins || [];
+      const minX = g.minX | 0;
+      const minY = g.minY | 0;
+      for (let i = 0; i < joins.length; i++) {
+        const jn = joins[i];
+        const a = byXY.get(jn.ax - minX + ":" + (jn.ay - minY));
+        const b = byXY.get(jn.bx - minX + ":" + (jn.by - minY));
+        if (!a || !b) continue;
+        const ra = globalThis.QuadPage.cellRect(a.col, a.row, g);
+        const rb = globalThis.QuadPage.cellRect(b.col, b.row, g);
+        drawJoinBar(ctx, ra, rb, joinStroke(jn.kind));
+      }
+      const home = state.cells.find((c) => c && c.role === "self");
+      const hover = state.hover && !state.hover.ghost ? state.hover : null;
+      const marks = [hover, home];
+      const seen = new Set();
+      for (const cell of marks) {
+        if (!cell) continue;
+        const q = cellQ(cell);
+        if (!q || seen.has(q)) continue;
+        seen.add(q);
+        const r = globalThis.QuadPage.cellRect(cell.col, cell.row, g);
+        ctx.strokeStyle = q === state.selected ? THEME.gold2 : THEME.gold;
+        ctx.lineWidth = q === state.selected ? 2.5 : 1;
+        ctx.strokeRect(r.x + 0.4, r.y + 0.4, r.w - 0.8, r.h - 0.8);
+      }
+      return;
+    }
+    const marks = [state.hover, state.cells.find((c) => c && cellQ(c) === state.selected)];
     const seen = new Set();
     for (const cell of marks) {
-      if (!cell || seen.has(cell.post.q)) continue;
-      seen.add(cell.post.q);
+      if (!cell || cell.ghost) continue;
+      const q = cellQ(cell);
+      if (!q || seen.has(q)) continue;
+      seen.add(q);
+      if (cell.tab) continue;
+      if (cell.col == null || cell.row == null) continue;
       const r = globalThis.QuadPage.cellRect(cell.col, cell.row, g);
-      ctx.strokeStyle = cell.post.q === state.selected ? THEME.gold2 : THEME.gold;
-      ctx.lineWidth = cell.post.q === state.selected ? 2 : 1;
+      ctx.strokeStyle = q === state.selected ? THEME.gold2 : THEME.gold;
+      ctx.lineWidth = q === state.selected ? 2 : 1;
       ctx.strokeRect(r.x + 0.6, r.y + 0.6, r.w - 1.2, r.h - 1.2);
     }
   }
@@ -1135,6 +1599,17 @@
     return { ctx: ctx, w: w, h: h, dpr: dpr };
   }
 
+  function streamField(bits) {
+    const L = globalThis.QuadLayers;
+    const P = globalThis.QuadPage;
+    const src = bits || [];
+    const spec = P.cellSpec(state.cell, Math.max(1, src.length), state.hideEmpty);
+    return {
+      bits: L.streamRaster(src, spec.cols, spec.rows),
+      spec: spec,
+    };
+  }
+
   function plateField(glyphs, which) {
     const L = globalThis.QuadLayers;
     const P = globalThis.QuadPage;
@@ -1146,25 +1621,15 @@
       return { bits: plates[which], spec: P.cellSpec(state.cell, n, state.hideEmpty) };
     }
     const split = L.splitAligned(g);
-    let w;
-    let h;
     if (state.essay) {
-      if (which === "c2") {
-        w = 8;
-        h = 14;
-      } else {
-        w = 10;
-        h = 10;
-      }
-    } else {
-      const sz = L.streamSize(state.cell, (split[which] || []).length);
-      w = sz.w;
-      h = sz.h;
+      const w = which === "c2" ? 8 : 10;
+      const h = which === "c2" ? 14 : 10;
+      return {
+        bits: L.streamRaster(split[which], w, h),
+        spec: { id: which === "c2" ? "fish" : "cross", cols: w, rows: h, n: w * h, packed: true },
+      };
     }
-    return {
-      bits: L.streamRaster(split[which], w, h),
-      spec: { id: "byte", cols: w, rows: h, n: w * h, packed: true },
-    };
+    return streamField(split[which] || []);
   }
 
   function overlayC1Field(hostGlyphs, overlayGlyphs) {
@@ -1180,11 +1645,7 @@
         if (src[i] == null) continue;
         split.push(src[i] ? 1 : 0);
       }
-      const sz = L.streamSize(state.cell, split.length);
-      return {
-        bits: L.streamRaster(split, sz.w, sz.h),
-        spec: { id: "byte", cols: sz.w, rows: sz.h, n: sz.w * sz.h, packed: true },
-      };
+      return streamField(split);
     }
     const n = host.length;
     const bits = new Array(n);
@@ -1311,9 +1772,50 @@
     ctx.restore();
   }
 
+  function drawBitFrames(ctx, x, y, w, h, bits, spec, ink1, ink0, inkOnly) {
+    const cols = Math.max(1, spec.cols | 0);
+    const rows = Math.max(1, spec.rows | 0);
+    const gw = w / cols;
+    const gh = h / rows;
+    const n = bits && bits.length ? bits.length : 0;
+    const pad = Math.min(gw, gh) * 0.16;
+    ctx.save();
+    ctx.lineWidth = Math.max(0.8, Math.min(gw, gh) * 0.16);
+    ctx.strokeStyle = ink1;
+    for (let i = 0; i < n; i++) {
+      const v = bits[i];
+      if (v == null || v === -1) continue;
+      const p = globalThis.QuadPage.cellXY(i, spec);
+      const px = x + p.c * gw;
+      const py = y + p.r * gh;
+      if (!v) {
+        if (inkOnly) continue;
+        ctx.fillStyle = ink0;
+        ctx.fillRect(px, py, gw, gh);
+        continue;
+      }
+      if (!inkOnly) {
+        ctx.fillStyle = ink0;
+        ctx.fillRect(px, py, gw, gh);
+      }
+      ctx.strokeStyle = ink1;
+      ctx.strokeRect(px + pad, py + pad, Math.max(0.5, gw - pad * 2), Math.max(0.5, gh - pad * 2));
+    }
+    ctx.restore();
+  }
+
   function blitBits(ctx, x, y, w, h, bits, spec, ink1, ink0, inkOnly) {
     const cols = Math.max(1, spec.cols | 0);
     const rows = Math.max(1, spec.rows | 0);
+    const open = !state.filledFrame;
+    if (open) {
+      const gw = w / cols;
+      const gh = h / rows;
+      if (gw >= 3 && gh >= 3) {
+        drawBitFrames(ctx, x, y, w, h, bits, spec, ink1, ink0, inkOnly);
+        return;
+      }
+    }
     if (blitScratch.width !== cols || blitScratch.height !== rows) {
       blitScratch.width = cols;
       blitScratch.height = rows;
@@ -1403,9 +1905,40 @@
     ];
   }
 
+  function drawRgbaFrames(ctx, x, y, w, h, rgba, cols, rows) {
+    const gw = w / cols;
+    const gh = h / rows;
+    const n = Math.min(cols * rows, (rgba.length / 4) | 0);
+    const open = gw >= 3 && gh >= 3;
+    ctx.save();
+    ctx.lineWidth = Math.max(0.7, Math.min(gw, gh) * 0.16);
+    for (let i = 0; i < n; i++) {
+      const o = i * 4;
+      if (!rgba[o + 3]) continue;
+      const c = i % cols;
+      const r = (i / cols) | 0;
+      const px = x + c * gw;
+      const py = y + r * gh;
+      const color = "rgba(" + rgba[o] + "," + rgba[o + 1] + "," + rgba[o + 2] + "," + rgba[o + 3] / 255 + ")";
+      if (open) {
+        const pad = Math.min(gw, gh) * 0.16;
+        ctx.strokeStyle = color;
+        ctx.strokeRect(px + pad, py + pad, Math.max(0.5, gw - pad * 2), Math.max(0.5, gh - pad * 2));
+      } else {
+        ctx.fillStyle = color;
+        ctx.fillRect(px, py, Math.max(0.4, gw), Math.max(0.4, gh));
+      }
+    }
+    ctx.restore();
+  }
+
   function blitRgbaField(ctx, x, y, w, h, rgba, cols, rows) {
     cols = Math.max(1, cols | 0);
     rows = Math.max(1, rows | 0);
+    if (!state.filledFrame) {
+      drawRgbaFrames(ctx, x, y, w, h, rgba, cols, rows);
+      return;
+    }
     if (blitScratch.width !== cols || blitScratch.height !== rows) {
       blitScratch.width = cols;
       blitScratch.height = rows;
@@ -1938,6 +2471,7 @@
     if (!p) {
       if (meta) meta.textContent = "Click a cell.";
       if (textEl) textEl.textContent = "—";
+      renderPieceList(0);
       paintPeek(null);
       paintPlates(null);
       paintQuotePeek(null);
@@ -1949,12 +2483,30 @@
     const lock = firstLock(p.q);
     const path = walk(p.q);
     if (meta) {
+      let extra = "";
+      const pc = puzzleOn() ? currentPiece(p.q) : null;
+      const QP = globalThis.QuadPrimes;
+      if (pc && QP) {
+        if (pc.kind === "prime") {
+          extra += `\npiece prime · π ${pc.primeIndex}`;
+          if (pc.sophieIndex) extra += ` · SG ${pc.sophieIndex} · 2×${pc.n}+1 = ${pc.safePartner}`;
+        } else if (pc.kind === "composite") {
+          extra += `\npiece composite · rank ${pc.compositeIndex} · ${QP.factorString(pc.n)} · ω ${pc.omega} Ω ${pc.Omega} · d ${QP.divisorCount(pc.n)}`;
+          extra += `\npairs ${pc.pairs.map((pair) => `(${pair[0]},${pair[1]})`).join(" ")}`;
+        } else if (pc.kind === "unit") {
+          extra += `\npiece unit · 1`;
+        }
+        const attach = pc.cells.filter((c) => c.role !== "self");
+        if (attach.length) extra += `\nattach ${attach.map((c) => c.q).join(", ")}`;
+      }
       meta.textContent =
         `#${p.q}  ${p.date}  ${pad2(p.hh)}:${pad2(p.mm)}:${pad2(p.ss)} EST\n` +
         `spoke ${p.spoke}  hops ${p.hops}  next ${p.next}  lock ${lock}\n` +
         `glyphs ${glyphs.length}  cell ${spec.cols}×${spec.rows}  tape ${state.tape}\n` +
-        `walk ${path.join("→")}`;
+        `walk ${path.join("→")}` +
+        extra;
     }
+    renderPieceList(p.q);
     if (textEl) {
       if (state.tape === "chip") {
         const names = ["sq0", "sq1", "bar0", "bar1"];
@@ -1968,6 +2520,34 @@
     paintQuotePeek(p);
     paintStackViews(p);
     if ($("qnum") && document.activeElement !== $("qnum")) $("qnum").value = String(p.q);
+  }
+
+  function renderPieceList(q) {
+    const el = $("piece-list");
+    if (!el) return;
+    if (!puzzleOn() || !q) {
+      el.hidden = true;
+      el.innerHTML = "";
+      return;
+    }
+    const pc = currentPiece(q);
+    if (!pc) {
+      el.hidden = true;
+      el.innerHTML = "";
+      return;
+    }
+    el.hidden = false;
+    const bits = [];
+    for (let i = 0; i < pc.cells.length; i++) {
+      const c = pc.cells[i];
+      if (c.role === "self") continue;
+      if (c.ghost) {
+        bits.push(`<span class="ghost-q" title="outside corpus">${c.q} outside corpus</span>`);
+      } else {
+        bits.push(`<button type="button" data-q="${c.q}" data-role="${c.role}">${c.q}</button>`);
+      }
+    }
+    el.innerHTML = bits.join("");
   }
 
   function setNotes() {
@@ -1984,7 +2564,11 @@
     }
     if (state.hideEmpty) extra += " Empty slots hidden: leftover page cells and padded tape cells are omitted.";
     if (state.hideSolid) extra += " Solid squares off: empty-text posts (544, 550, …) are omitted.";
-    if (state.filledFrame) extra += " Filled frame: selected rectangle is a packed bitmap (one cell per glyph), same as Meaning.";
+    if (state.filledFrame) {
+      extra += " Filled frame: solid cell per glyph. Same cell layout on every middle rectangle and in the plate inspector.";
+    } else {
+      extra += " Filled frame off: open squares and bars where the cell is large enough to draw them. Smaller cells keep full glyph ink, so the decode does not wash out. Same layout on the mosaic and the inspector.";
+    }
     if (pictureOn()) {
       extra += " Picture: " + (PICTURE_NOTE[state.picture] || "");
       if (state.xform !== "none") extra += " " + (XFORM_NOTE[state.xform] || "");
@@ -2002,8 +2586,8 @@
     }
     if ($("peek-note")) {
       let peek = state.filledFrame
-        ? "Blow-up packs the tape as a filled frame (one solid cell per glyph). The page itself always fits every post."
-        : "Blow-up uses the same cell layout at a readable glyph size. The page itself always fits every post.";
+        ? "Filled frame is on: solid cells. This blow-up, the middle mosaic, and the plates all use the selected cell layout."
+        : "Filled frame is off: open squares and bars on this blow-up, the middle mosaic, and the plates, wherever a cell is large enough to draw the stroke. Smaller cells stay full ink. The page itself always fits every post.";
       if (state.layer === "peel" || pageViewPlates()) {
         peek += pageViewPlates()
           ? " Plates under this blow-up are C1 / C2 / C3."
@@ -2052,6 +2636,7 @@
           : `Quoted Anon as four-symbol. C2 = nested board post, C3 = quote stamp, clipped to C1 slots. C4 ${c4Word()} = this Q drop. Independent packing — not a claim that Q wrote quads.`
         : "";
     }
+    if ($("puzzle-note")) $("puzzle-note").textContent = puzzleNoteText();
   }
 
   function writeHash() {
@@ -2094,6 +2679,19 @@
     if (state.quote !== "off" && state.quoteTape === "c1-only") parts.push("qtape=c1");
     if (state.rightTab === "stack") parts.push("rtab=stack");
     if (state.swapC3C4) parts.push("c34=1");
+    if (state.puzzle && state.puzzle !== "off") {
+      parts.push("puzzle=" + state.puzzle);
+      if (state.pzFilter && state.pzFilter !== "all") parts.push("pzfilter=" + state.pzFilter);
+      if (!state.pzPrime) parts.push("pzprime=0");
+      if (!state.pzComp) parts.push("pzcomp=0");
+      if (!state.pzUnit) parts.push("pzunit=0");
+      if (!state.pzOrdinal) parts.push("pword=0");
+      if (!state.pzPairs) parts.push("pzpairs=0");
+      if (state.pzOmega) parts.push("pzomega=1");
+      if (state.pzSg && state.pzSg !== "off") parts.push("pzsg=" + state.pzSg);
+      if (!state.pzOrient) parts.push("pzorient=0");
+      if ((state.pzMs | 0) !== 700) parts.push("pzms=" + (state.pzMs | 0));
+    }
     const next = "#" + parts.join("&");
     if (location.hash !== next) history.replaceState(null, "", next);
   }
@@ -2144,6 +2742,23 @@
     state.quoteTape = map.qtape === "c1" || map.qtape === "c1-only" ? "c1-only" : "triple-text";
     state.rightTab = map.rtab === "stack" ? "stack" : "inspect";
     state.swapC3C4 = map.c34 === "1";
+    state.puzzle = map.puzzle && PUZZLE_MODES.indexOf(map.puzzle) >= 0 ? map.puzzle : "off";
+    state.pzFilter = map.pzfilter && PUZZLE_FILTERS.indexOf(map.pzfilter) >= 0 ? map.pzfilter : "all";
+    state.pzPrime = map.pzprime !== "0";
+    state.pzComp = map.pzcomp !== "0";
+    state.pzUnit = map.pzunit !== "0";
+    state.pzOrdinal = map.pword !== "0";
+    state.pzPairs = map.pzpairs !== "0";
+    state.pzOmega = map.pzomega === "1";
+    state.pzSg = map.pzsg && PUZZLE_SG.indexOf(map.pzsg) >= 0 ? map.pzsg : "off";
+    state.pzOrient = map.pzorient !== "0";
+    if (map.pzms != null && map.pzms !== "") {
+      const ms = Number(map.pzms);
+      state.pzMs = isFinite(ms) ? Math.max(200, Math.min(2000, ms | 0)) : 700;
+    } else {
+      state.pzMs = 700;
+    }
+    stopPuzzlePlay();
     if (map.mix != null && map.mix !== "") {
       const m = Number(map.mix);
       state.mix = isFinite(m) ? Math.max(0, Math.min(100, m | 0)) : MIX_DEFAULT;
@@ -2173,6 +2788,9 @@
     bind("onpage", state.onPage);
     bind("quote", state.quote);
     bind("quote-tape", state.quoteTape);
+    bind("puzzle-mode", state.puzzle);
+    bind("puzzle-filter", state.pzFilter);
+    bind("puzzle-sg", state.pzSg);
     applyTheme(state.theme);
     applyLayerChrome();
     if ($("plate-p1")) $("plate-p1").checked = !!state.plates.c1;
@@ -2192,6 +2810,15 @@
     if ($("mix")) $("mix").value = String(state.mix | 0);
     if ($("mix-readout")) $("mix-readout").textContent = String(state.mix | 0);
     if ($("qnum")) $("qnum").value = String(state.selected);
+    if ($("puzzle-primes")) $("puzzle-primes").checked = !!state.pzPrime;
+    if ($("puzzle-comps")) $("puzzle-comps").checked = !!state.pzComp;
+    if ($("puzzle-unit")) $("puzzle-unit").checked = !!state.pzUnit;
+    if ($("puzzle-ordinal")) $("puzzle-ordinal").checked = !!state.pzOrdinal;
+    if ($("puzzle-pairs")) $("puzzle-pairs").checked = !!state.pzPairs;
+    if ($("puzzle-omega")) $("puzzle-omega").checked = !!state.pzOmega;
+    if ($("puzzle-orient")) $("puzzle-orient").checked = !!state.pzOrient;
+    if ($("puzzle-speed")) $("puzzle-speed").value = String(state.pzMs | 0);
+    if ($("puzzle-speed-readout")) $("puzzle-speed-readout").textContent = String(state.pzMs | 0);
     syncShuffleBtn();
     setNotes();
   }
@@ -2229,6 +2856,7 @@
     state.dirty = true;
     draw();
     renderInspector();
+    setNotes();
     writeHash();
     setPackStatus(false);
   }
@@ -2237,20 +2865,33 @@
     if (fromClick) clearEssay();
     const n = globalThis.QuadPage.clampInt(q, 1, state.posts.length || 4966);
     state.selected = n;
+    if (puzzleFocus()) {
+      rebuildGrid();
+      state.dirty = true;
+    } else if (puzzleOn()) {
+      state.piece = currentPiece(n);
+    }
     renderInspector();
+    setNotes();
     draw();
     writeHash();
     if (fromClick) document.body.classList.add("show-inspect");
   }
 
   function neighbor(dqCol, dqRow) {
-    const cell = state.cells.find((c) => c && c.post.q === state.selected);
+    if (puzzleFocus()) {
+      const dir = dqCol + dqRow;
+      if (!dir) return;
+      puzzleStep(dir > 0 ? 1 : -1);
+      return;
+    }
+    const cell = state.cells.find((c) => c && cellQ(c) === state.selected);
     if (!cell || !state.grid) return;
     const col = cell.col + dqCol;
     const row = cell.row + dqRow;
     if (col < 0 || row < 0 || col >= state.grid.cols || row >= state.grid.rows) return;
     const next = state.cells[row * state.grid.cols + col];
-    if (next) selectQ(next.post.q);
+    if (next && next.post) selectQ(next.post.q);
   }
 
   function onResize() {
@@ -2309,6 +2950,102 @@
     }
     applyLayerChrome();
     relayout();
+  }
+
+  function selectText(id) {
+    const el = $(id);
+    if (!el || el.tagName !== "SELECT" || el.selectedIndex < 0) return "";
+    return el.options[el.selectedIndex].textContent.replace(/\s+/g, " ").trim();
+  }
+
+  function settingsText() {
+    writeHash();
+    const plates = ["c1", "c2", "c3", "c4"]
+      .map((k, i) => "C" + (i + 1) + " " + (state.plates[k] ? "on" : "off"))
+      .join(", ");
+    const mute = ["sq0", "sq1", "bar0", "bar1"]
+      .map((k) => k + " " + (state.mute[k] ? "on" : "off"))
+      .join(", ");
+    return [
+      "Four-symbol page — current settings",
+      "",
+      "Squares: " + (state.pageView === "plates" ? "Plates" : "Tape"),
+      "Order: " + selectText("order"),
+      "Weave: " + selectText("weave"),
+      "Selected q: " + state.selected,
+      "Picture: " + selectText("picture"),
+      "Transform: " + selectText("xform"),
+      "Cell: " + selectText("cell"),
+      "Tape: " + selectText("tape"),
+      "Chips: " + selectText("chips"),
+      "Layering: " + selectText("layer"),
+      "Initial post: " + selectText("quote"),
+      "Quote tape: " + selectText("quote-tape"),
+      "Align: " + selectText("align"),
+      "Composite: " + selectText("comp"),
+      "On page: " + selectText("onpage"),
+      "Plate mix: " + (state.mix | 0),
+      "Plates: " + plates,
+      "Swap C3/C4: " + (state.swapC3C4 ? "on" : "off"),
+      "Mute: " + mute,
+      "Stack: " + selectText("stack"),
+      "Shuffle sibling: " + (state.shuffle ? "on" : "off"),
+      "TEXTPIC essay: " + (state.essay ? "on" : "off"),
+      "Theme: " + selectText("theme"),
+      "EBS paint: " + selectText("ebs-paint"),
+      "Color: " + selectText("color"),
+      "Cell gaps: " + (state.gaps ? "on" : "off"),
+      "q labels: " + (state.labels ? "on" : "off"),
+      "Hide empty slots: " + (state.hideEmpty ? "on" : "off"),
+      "Hide solid squares: " + (state.hideSolid ? "on" : "off"),
+      "Filled frame: " + (state.filledFrame ? "on" : "off"),
+      "Right tab: " + (state.rightTab === "stack" ? "Stack" : "Inspect"),
+      "Puzzle: " + (state.puzzle === "off" ? "Off" : state.puzzle === "focus" ? "Focus" : "Page"),
+      "Puzzle filter: " + selectText("puzzle-filter"),
+      "Show primes: " + (state.pzPrime ? "on" : "off"),
+      "Show composites: " + (state.pzComp ? "on" : "off"),
+      "Attach 1: " + (state.pzUnit ? "on" : "off"),
+      "Attach ordinal: " + (state.pzOrdinal ? "on" : "off"),
+      "Attach factor pairs: " + (state.pzPairs ? "on" : "off"),
+      "Attach ω: " + (state.pzOmega ? "on" : "off"),
+      "Sophie Germain: " + selectText("puzzle-sg"),
+      "Orient squares: " + (state.pzOrient ? "on" : "off"),
+      "Play speed: " + (state.pzMs | 0) + " ms",
+      "",
+      location.href,
+    ].join("\n");
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch (err) {
+      ok = false;
+    }
+    ta.remove();
+    return ok;
+  }
+
+  function copySettings() {
+    const text = settingsText();
+    const note = $("copy-settings-note");
+    const show = (msg) => {
+      if (note) note.textContent = msg;
+    };
+    const finish = (ok) => show(ok ? "Copied." : "Copy failed.");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => finish(true)).catch(() => finish(fallbackCopy(text)));
+      return;
+    }
+    finish(fallbackCopy(text));
   }
 
   function bind() {
@@ -2585,12 +3322,90 @@
     if ($("fit")) {
       $("fit").addEventListener("click", () => relayout({ tapes: false }));
     }
+    if ($("copy-settings")) {
+      $("copy-settings").addEventListener("click", () => copySettings());
+    }
+    if ($("puzzle-mode")) {
+      $("puzzle-mode").addEventListener("change", () => {
+        const v = $("puzzle-mode").value;
+        state.puzzle = PUZZLE_MODES.indexOf(v) >= 0 ? v : "off";
+        if (!puzzleOn()) stopPuzzlePlay();
+        pieceCache = new Map();
+        applyPuzzleChrome();
+        setNotes();
+        relayout({ tapes: false, order: false });
+      });
+    }
+    if ($("puzzle-filter")) {
+      $("puzzle-filter").addEventListener("change", () => {
+        const v = $("puzzle-filter").value;
+        state.pzFilter = PUZZLE_FILTERS.indexOf(v) >= 0 ? v : "all";
+        setNotes();
+        if (puzzlePage()) {
+          state.dirty = true;
+          draw();
+        }
+        writeHash();
+      });
+    }
+    if ($("puzzle-sg")) {
+      $("puzzle-sg").addEventListener("change", () => {
+        const v = $("puzzle-sg").value;
+        state.pzSg = PUZZLE_SG.indexOf(v) >= 0 ? v : "off";
+        pieceCache = new Map();
+        setNotes();
+        relayout({ tapes: false, order: false });
+      });
+    }
+    const pzCheck = (id, key) => {
+      if (!$(id)) return;
+      $(id).addEventListener("change", () => {
+        state[key] = !!$(id).checked;
+        pieceCache = new Map();
+        setNotes();
+        relayout({ tapes: false, order: false });
+      });
+    };
+    pzCheck("puzzle-primes", "pzPrime");
+    pzCheck("puzzle-comps", "pzComp");
+    pzCheck("puzzle-unit", "pzUnit");
+    pzCheck("puzzle-ordinal", "pzOrdinal");
+    pzCheck("puzzle-pairs", "pzPairs");
+    pzCheck("puzzle-omega", "pzOmega");
+    pzCheck("puzzle-orient", "pzOrient");
+    if ($("puzzle-prev")) $("puzzle-prev").addEventListener("click", () => puzzleStep(-1));
+    if ($("puzzle-next")) $("puzzle-next").addEventListener("click", () => puzzleStep(1));
+    if ($("puzzle-play")) {
+      $("puzzle-play").addEventListener("click", () => togglePuzzlePlay());
+    }
+    if ($("puzzle-speed")) {
+      const onSpeed = () => {
+        const ms = Math.max(200, Math.min(2000, Number($("puzzle-speed").value) | 0));
+        state.pzMs = ms;
+        if ($("puzzle-speed-readout")) $("puzzle-speed-readout").textContent = String(ms);
+        if (state.playTimer) {
+          stopPuzzlePlay();
+          togglePuzzlePlay();
+        }
+        writeHash();
+      };
+      $("puzzle-speed").addEventListener("input", onSpeed);
+      $("puzzle-speed").addEventListener("change", onSpeed);
+    }
+    if ($("piece-list")) {
+      $("piece-list").addEventListener("click", (e) => {
+        const btn = e.target && e.target.closest ? e.target.closest("button[data-q]") : null;
+        if (!btn) return;
+        selectQ(Number(btn.getAttribute("data-q")), true);
+      });
+    }
     const cv = $("page");
     cv.addEventListener("mousemove", (e) => {
       const r = cv.getBoundingClientRect();
       const hit = hitAt(e.clientX - r.left, e.clientY - r.top);
-      const q = hit ? hit.post.q : null;
-      if ((state.hover && state.hover.post.q) !== q) {
+      const q = hit ? cellQ(hit) : 0;
+      const prev = state.hover ? cellQ(state.hover) : 0;
+      if (prev !== q) {
         state.hover = hit;
         draw();
       }
@@ -2604,7 +3419,9 @@
     cv.addEventListener("click", (e) => {
       const r = cv.getBoundingClientRect();
       const hit = hitAt(e.clientX - r.left, e.clientY - r.top);
-      if (hit) selectQ(hit.post.q, true);
+      if (!hit || hit.ghost) return;
+      const q = cellQ(hit);
+      if (q) selectQ(q, true);
     });
     window.addEventListener("keydown", (e) => {
       if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA")) return;
@@ -2615,11 +3432,13 @@
     });
     window.addEventListener("resize", onResize);
     window.addEventListener("hashchange", () => {
+      stopPuzzlePlay();
       readHash();
       applyTheme(state.theme);
       syncControls();
       relayout();
     });
+    window.addEventListener("pagehide", () => stopPuzzlePlay());
   }
 
   bind();

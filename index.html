@@ -6,9 +6,9 @@
   <title>Four-symbol page — Q posts as rectangles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/page.css?v=20260921h" />
+  <link rel="stylesheet" href="css/page.css?v=20261009p1" />
 </head>
-<body data-theme="ebs" data-layer="peel" data-quote="over">
+<body data-theme="ebs" data-layer="peel" data-quote="over" data-puzzle="off">
   <header>
     <h1>Four-symbol page</h1>
     <div class="meta" id="banner-meta">loading corpus…</div>
@@ -17,6 +17,7 @@
   </header>
   <div class="shell">
     <aside class="left">
+      <div class="left-scroll">
       <h2>Page</h2>
       <p class="note">Each post is one rectangle. All 4,966 fit here. Independent packing — not a claim that Q wrote quads.</p>
       <label class="row">Squares
@@ -59,6 +60,49 @@
         <button id="go" type="button">Select</button>
         <button class="ghost" id="fit" type="button">Refit page</button>
       </div>
+
+      <h2>Puzzle</h2>
+      <p class="note" id="puzzle-note">Off leaves the current page. Focus fills the middle with one number and the squares that attach to it. Page keeps the mosaic and docks those attachments on each square.</p>
+      <label class="row">Puzzle
+        <select id="puzzle-mode">
+          <option value="off" selected>Off</option>
+          <option value="focus">Focus</option>
+          <option value="page">Page</option>
+        </select>
+      </label>
+      <label class="row puzzle-only">Filter
+        <select id="puzzle-filter">
+          <option value="all" selected>All</option>
+          <option value="prime">Primes</option>
+          <option value="comp">Composites</option>
+          <option value="sg">Sophie Germain</option>
+          <option value="safe">Safeprimes</option>
+          <option value="chain">Cunningham</option>
+        </select>
+      </label>
+      <label class="row puzzle-only"><span>Show primes</span><input id="puzzle-primes" type="checkbox" checked /></label>
+      <label class="row puzzle-only"><span>Show composites</span><input id="puzzle-comps" type="checkbox" checked /></label>
+      <label class="row puzzle-only"><span>Attach 1 (unit pair)</span><input id="puzzle-unit" type="checkbox" checked /></label>
+      <label class="row puzzle-only"><span>Attach ordinal</span><input id="puzzle-ordinal" type="checkbox" checked /></label>
+      <label class="row puzzle-only"><span>Attach factor pairs</span><input id="puzzle-pairs" type="checkbox" checked /></label>
+      <label class="row puzzle-only"><span>Attach distinct primes ω</span><input id="puzzle-omega" type="checkbox" /></label>
+      <label class="row puzzle-only">Sophie Germain
+        <select id="puzzle-sg">
+          <option value="off" selected>Off</option>
+          <option value="partner">Partner</option>
+          <option value="chain">Chain</option>
+        </select>
+      </label>
+      <label class="row puzzle-only"><span>Orient squares</span><input id="puzzle-orient" type="checkbox" checked /></label>
+      <div class="btns puzzle-only">
+        <button type="button" id="puzzle-prev">Prev</button>
+        <button type="button" id="puzzle-play" aria-pressed="false">Play</button>
+        <button type="button" id="puzzle-next">Next</button>
+      </div>
+      <label class="row puzzle-only"><span>Play speed <b id="puzzle-speed-readout">700</b> ms</span>
+        <input id="puzzle-speed" type="range" min="200" max="2000" step="50" value="700" />
+      </label>
+      <p class="note puzzle-only" id="puzzle-walk-note">Focus arrows Left/Right (and Up/Down) walk the filtered homes, not the mosaic grid.</p>
 
       <h2>Picture</h2>
       <p class="note">Rearranges the rectangles on a 64×74 frame (hide empty + hide solid → 4,735 text posts + 1 remainder). Nothing inside a square changes. Off leaves Order + Weave as they are. Transform applies once Picture is not Off. Tape = field chip makes each square one mark if you want the page itself to read as a picture.</p>
@@ -172,7 +216,7 @@
           <option value="over">Over the posts</option>
         </select>
       </label>
-      <label class="row layer-peel layer-quote-mix"><span id="mix-label">Quote mix <b id="mix-readout">0</b></span>
+      <label class="row layer-peel layer-quote-mix"><span id="mix-label">Plate mix <b id="mix-readout">0</b></span>
         <input id="mix" type="range" min="0" max="100" value="0" />
       </label>
       <label class="row layer-peel layer-quote-tune"><span>Plates</span>
@@ -256,6 +300,11 @@
       </div>
       <p class="note">Click a rectangle. Arrows move on the page. Same codec as :8765.</p>
       <p class="status" id="pack-status">—</p>
+      </div>
+      <div class="left-foot">
+        <button type="button" id="copy-settings">Copy settings</button>
+        <p class="note" id="copy-settings-note" aria-live="polite"></p>
+      </div>
     </aside>
     <div class="stage">
       <canvas id="page" aria-label="Four-symbol rectangles, one per Q post"></canvas>
@@ -268,6 +317,7 @@
       <div id="tab-panel-inspect" role="tabpanel" aria-labelledby="tab-inspect">
       <h2>Selected rectangle</h2>
       <div id="inspect-meta">Click a cell.</div>
+      <div id="piece-list" hidden></div>
       <canvas id="peek" width="300" height="220" aria-label="Readable blow-up of the selected tape"></canvas>
       <p class="note" id="peek-note">Blow-up uses the same cell layout at a readable glyph size. The page itself always fits every post.</p>
       <div id="plates-block" hidden>
@@ -339,9 +389,10 @@
       </div>
     </aside>
   </div>
-  <script src="js/quads.js?v=20260917a"></script>
-  <script src="js/layouts.js?v=20260917a"></script>
-  <script src="js/layers.js?v=20260921h"></script>
-  <script src="js/page.js?v=20260923a"></script>
+  <script src="js/quads.js?v=20260923v31"></script>
+  <script src="js/layouts.js?v=20260923v31"></script>
+  <script src="js/layers.js?v=20260923v31"></script>
+  <script src="js/primes.js?v=20261009p1"></script>
+  <script src="js/page.js?v=20261009p1"></script>
 </body>
 </html>

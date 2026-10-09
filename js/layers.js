@@ -137,9 +137,13 @@
     if (cellKind === "cross") return { w: 10, h: 10 };
     if (cellKind === "weeks") return { w: 7, h: Math.max(1, Math.ceil((nBits || 1) / 7)) };
     if (cellKind === "notebook") return { w: 32, h: Math.max(1, Math.ceil((nBits || 1) / 32)) };
+    if (cellKind === "square" || cellKind === "spiral") {
+      const n = Math.max(1, nBits | 0);
+      const side = Math.max(1, Math.ceil(Math.sqrt(n)));
+      return { w: side, h: side };
+    }
     const n = Math.max(1, nBits | 0);
-    const side = Math.max(1, Math.ceil(Math.sqrt(n)));
-    return { w: side, h: side };
+    return { w: 8, h: Math.max(1, Math.ceil(n / 8)) };
   }
 
   function countInk(bits) {
