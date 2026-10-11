@@ -580,6 +580,111 @@
     };
   }
 
+  function packField(homes, flags, opts) {
+    opts = opts || {};
+    const gutter = opts.gutter | 0;
+    const src = homes || [];
+    const built = [];
+    let area = 0;
+    for (let i = 0; i < src.length; i++) {
+      const q = src[i] | 0;
+      if (q < 1) continue;
+      const pc = piece(q, flags);
+      if (!pc || !pc.cells || !pc.cells.length) continue;
+      const w = pc.bbox.w | 0;
+      const h = pc.bbox.h | 0;
+      area += w * h;
+      built.push(pc);
+    }
+    const targetW = Math.max(1, Math.ceil(Math.sqrt(area || 1)));
+    const sorted = built.slice();
+    sorted.sort(function (a, b) {
+      const dh = (b.bbox.h | 0) - (a.bbox.h | 0);
+      if (dh) return dh;
+      const dw = (b.bbox.w | 0) - (a.bbox.w | 0);
+      if (dw) return dw;
+      return (a.n | 0) - (b.n | 0);
+    });
+    let cursorX = 0;
+    let cursorY = 0;
+    let rowH = 0;
+    let usedW = 0;
+    const placed = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const pc = sorted[i];
+      const w = pc.bbox.w | 0;
+      const h = pc.bbox.h | 0;
+      if (cursorX > 0 && cursorX + w > targetW) {
+        cursorY += rowH + gutter;
+        cursorX = 0;
+        rowH = 0;
+      }
+      placed.push({ pc: pc, x: cursorX, y: cursorY });
+      cursorX += w + gutter;
+      if (cursorX > usedW) usedW = cursorX;
+      if (h > rowH) rowH = h;
+    }
+    const totalW = Math.max(1, usedW);
+    const totalH = Math.max(1, cursorY + rowH);
+    const cells = [];
+    const joins = [];
+    for (let i = 0; i < placed.length; i++) {
+      const pc = placed[i].pc;
+      const ox = placed[i].x - (pc.bbox.minX | 0);
+      const oy = placed[i].y - (pc.bbox.minY | 0);
+      const home = pc.n | 0;
+      const srcCells = pc.cells;
+      for (let k = 0; k < srcCells.length; k++) {
+        const c = srcCells[k];
+        cells.push({
+          q: c.q | 0,
+          role: c.role,
+          x: (c.x | 0) + ox,
+          y: (c.y | 0) + oy,
+          rot: c.rot | 0,
+          flipH: !!c.flipH,
+          ghost: !!c.ghost,
+          home: home,
+        });
+      }
+      const srcJoins = pc.joins || [];
+      for (let k = 0; k < srcJoins.length; k++) {
+        const jn = srcJoins[k];
+        joins.push({
+          ax: (jn.ax | 0) + ox,
+          ay: (jn.ay | 0) + oy,
+          bx: (jn.bx | 0) + ox,
+          by: (jn.by | 0) + oy,
+          kind: jn.kind,
+          home: home,
+        });
+      }
+    }
+    return {
+      homes: src.slice(),
+      cells: cells,
+      joins: joins,
+      bbox: {
+        minX: 0,
+        minY: 0,
+        maxX: totalW - 1,
+        maxY: totalH - 1,
+        w: totalW,
+        h: totalH,
+      },
+      pieces: placed.map(function (p) {
+        return {
+          q: p.pc.n | 0,
+          x: p.x | 0,
+          y: p.y | 0,
+          w: p.pc.bbox.w | 0,
+          h: p.pc.bbox.h | 0,
+          kind: p.pc.kind,
+        };
+      }),
+    };
+  }
+
   function factorString(n) {
     const f = factorize(n);
     if (!f.length) return "1";
@@ -630,6 +735,7 @@
     cunningham: cunningham,
     kindOf: kindOf,
     piece: piece,
+    packField: packField,
     factorString: factorString,
     shareEdge: function (ax, ay, bx, by) {
       return Math.abs(ax - bx) + Math.abs(ay - by) === 1;

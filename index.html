@@ -1,19 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="ebs">
+<html lang="en" data-theme="paper">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Four-symbol page — Q posts as rectangles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/page.css?v=20261009p1" />
+  <link rel="stylesheet" href="css/page.css?v=20261009pc1" />
 </head>
-<body data-theme="ebs" data-layer="peel" data-quote="over" data-puzzle="off">
+<body data-theme="paper" data-layer="off" data-quote="off" data-puzzle="off">
   <header>
     <h1>Four-symbol page</h1>
     <div class="meta" id="banner-meta">loading corpus…</div>
     <div class="meta">grid <b id="grid-readout">—</b></div>
     <div class="meta">selected <b id="sel-readout">—</b></div>
+    <a class="ghost" href="http://127.0.0.1:8765/" title="Loop Code Visualizer">2D :8765</a>
+    <a class="ghost" href="http://127.0.0.1:8777/" title="3D analyzer">3D :8777</a>
   </header>
   <div class="shell">
     <aside class="left">
@@ -46,15 +48,15 @@
       </label>
       <label class="row">Weave
         <select id="weave">
-          <option value="raster">Raster L→R, T→B</option>
+          <option value="raster" selected>Raster L→R, T→B</option>
           <option value="boustrophedon">Boustrophedon (ox-plow)</option>
           <option value="spiral">Spiral (outer → in)</option>
-          <option value="columns" selected>Columns (down, then next)</option>
+          <option value="columns">Columns (down, then next)</option>
         </select>
       </label>
       <p class="note" id="order-note">Sequential q fills the page left to right, top to bottom.</p>
       <label class="row">#q
-        <input id="qnum" type="number" min="1" max="4966" value="1" />
+        <input id="qnum" type="number" min="1" max="4966" value="3414" />
       </label>
       <div class="btns">
         <button id="go" type="button">Select</button>
@@ -62,47 +64,23 @@
       </div>
 
       <h2>Puzzle</h2>
-      <p class="note" id="puzzle-note">Off leaves the current page. Focus fills the middle with one number and the squares that attach to it. Page keeps the mosaic and docks those attachments on each square.</p>
+      <p class="note" id="puzzle-note">Off is the 4,966 page. Field packs every Q as a singular square with its prime/composite family attached as more Q squares. Focus zooms one singular.</p>
       <label class="row">Puzzle
         <select id="puzzle-mode">
           <option value="off" selected>Off</option>
+          <option value="field">Field</option>
           <option value="focus">Focus</option>
-          <option value="page">Page</option>
         </select>
       </label>
-      <label class="row puzzle-only">Filter
-        <select id="puzzle-filter">
-          <option value="all" selected>All</option>
-          <option value="prime">Primes</option>
-          <option value="comp">Composites</option>
-          <option value="sg">Sophie Germain</option>
-          <option value="safe">Safeprimes</option>
-          <option value="chain">Cunningham</option>
+      <label class="row puzzle-field-only">Scale
+        <select id="puzzle-scale">
+          <option value="fit" selected>Fit</option>
+          <option value="read">Read</option>
         </select>
       </label>
-      <label class="row puzzle-only"><span>Show primes</span><input id="puzzle-primes" type="checkbox" checked /></label>
-      <label class="row puzzle-only"><span>Show composites</span><input id="puzzle-comps" type="checkbox" checked /></label>
-      <label class="row puzzle-only"><span>Attach 1 (unit pair)</span><input id="puzzle-unit" type="checkbox" checked /></label>
-      <label class="row puzzle-only"><span>Attach ordinal</span><input id="puzzle-ordinal" type="checkbox" checked /></label>
-      <label class="row puzzle-only"><span>Attach factor pairs</span><input id="puzzle-pairs" type="checkbox" checked /></label>
-      <label class="row puzzle-only"><span>Attach distinct primes ω</span><input id="puzzle-omega" type="checkbox" /></label>
-      <label class="row puzzle-only">Sophie Germain
-        <select id="puzzle-sg">
-          <option value="off" selected>Off</option>
-          <option value="partner">Partner</option>
-          <option value="chain">Chain</option>
-        </select>
-      </label>
-      <label class="row puzzle-only"><span>Orient squares</span><input id="puzzle-orient" type="checkbox" checked /></label>
-      <div class="btns puzzle-only">
-        <button type="button" id="puzzle-prev">Prev</button>
-        <button type="button" id="puzzle-play" aria-pressed="false">Play</button>
-        <button type="button" id="puzzle-next">Next</button>
+      <div class="btns puzzle-field-only">
+        <button type="button" id="puzzle-zoom">Zoom Focus</button>
       </div>
-      <label class="row puzzle-only"><span>Play speed <b id="puzzle-speed-readout">700</b> ms</span>
-        <input id="puzzle-speed" type="range" min="200" max="2000" step="50" value="700" />
-      </label>
-      <p class="note puzzle-only" id="puzzle-walk-note">Focus arrows Left/Right (and Up/Down) walk the filtered homes, not the mosaic grid.</p>
 
       <h2>Picture</h2>
       <p class="note">Rearranges the rectangles on a 64×74 frame (hide empty + hide solid → 4,735 text posts + 1 remainder). Nothing inside a square changes. Off leaves Order + Weave as they are. Transform applies once Picture is not Off. Tape = field chip makes each square one mark if you want the page itself to read as a picture.</p>
@@ -145,8 +123,8 @@
           <option value="spiral">Square spiral</option>
           <option value="weeks">Weeks (7-wide)</option>
           <option value="square">Nearest square</option>
-          <option value="fish" selected>Fish frame 8×14</option>
-          <option value="cross">Cross frame 10×10</option>
+          <option value="fish">Fish frame 8×14</option>
+          <option value="cross" selected>Cross frame 10×10</option>
         </select>
       </label>
       <label class="row">Tape
@@ -171,8 +149,8 @@
       <p class="note">Off leaves the current page. Peel splits C1 / C2 / C3 / C4. Mute hides glyph classes. Stack averages frames. Shuffle sibling on any view that looks like a picture. Independent packing — not a claim that Q wrote quads.</p>
       <label class="row">Layering
         <select id="layer">
-          <option value="off">Off</option>
-          <option value="peel" selected>Peel</option>
+          <option value="off" selected>Off</option>
+          <option value="peel">Peel</option>
           <option value="mute">Mute</option>
           <option value="stack">Stack</option>
           <option value="diff">Diff</option>
@@ -181,10 +159,10 @@
       <p class="note" id="layer-caption"></p>
       <label class="row">Initial post
         <select id="quote">
-          <option value="off">Off</option>
+          <option value="off" selected>Off</option>
           <option value="peek">Peek</option>
           <option value="under">Under the posts</option>
-          <option value="over" selected>Over the posts</option>
+          <option value="over">Over the posts</option>
         </select>
       </label>
       <label class="row layer-quote">Quote tape
@@ -197,27 +175,27 @@
       <p class="note layer-quote">Off leaves the current page. Peek / Under / Over use the same Align, Composite, Plates, Mute, and Shuffle as Layering. Independent packing — not a Q drop.</p>
       <label class="row layer-peel layer-quote-tune">Align
         <select id="align">
-          <option value="tape">Tape (holes)</option>
-          <option value="stream" selected>Stream (TEXTPIC)</option>
+          <option value="tape" selected>Tape (holes)</option>
+          <option value="stream">Stream (TEXTPIC)</option>
         </select>
       </label>
       <label class="row layer-comp layer-quote-tune">Composite
         <select id="comp">
-          <option value="solo">Solo</option>
+          <option value="solo" selected>Solo</option>
           <option value="add">Add</option>
-          <option value="screen" selected>Screen</option>
+          <option value="screen">Screen</option>
           <option value="multiply">Multiply</option>
         </select>
       </label>
       <label class="row layer-onpage">On page
         <select id="onpage">
-          <option value="off">Off (inspector only)</option>
-          <option value="under" selected>Under the posts</option>
+          <option value="off" selected>Off (inspector only)</option>
+          <option value="under">Under the posts</option>
           <option value="over">Over the posts</option>
         </select>
       </label>
-      <label class="row layer-peel layer-quote-mix"><span id="mix-label">Plate mix <b id="mix-readout">0</b></span>
-        <input id="mix" type="range" min="0" max="100" value="0" />
+      <label class="row layer-peel layer-quote-mix"><span id="mix-label">Plate mix <b id="mix-readout">55</b></span>
+        <input id="mix" type="range" min="0" max="100" value="55" />
       </label>
       <label class="row layer-peel layer-quote-tune"><span>Plates</span>
         <span class="checks">
@@ -227,7 +205,7 @@
           <label class="plate-c4-lab"><input id="plate-p4" type="checkbox" checked /> C4</label>
         </span>
       </label>
-      <label class="row"><span>Swap C3/C4</span><input id="swap-c34" type="checkbox" checked /></label>
+      <label class="row"><span>Swap C3/C4</span><input id="swap-c34" type="checkbox" /></label>
       <p class="note" id="swap-c34-note">Off: C3 blue / black, C4 green / black. On: C3 green / black, C4 blue / black.</p>
       <label class="row layer-mute layer-quote-tune"><span>Mute</span>
         <span class="checks">
@@ -258,17 +236,17 @@
           <option value="volt">Volt (hazard yellow)</option>
           <option value="magma">Magma</option>
           <option value="ion">Ion (blue / magenta)</option>
-          <option value="ebs" selected>EBS (please stand by)</option>
-          <option value="paper">Paper (light)</option>
+          <option value="ebs">EBS (please stand by)</option>
+          <option value="paper" selected>Paper (light)</option>
           <option value="oak">Oak (original)</option>
         </select>
       </label>
       <label class="row" id="ebs-paint-row">EBS paint
         <select id="ebs-paint">
-          <option value="meaning">Meaning (C1 + hops)</option>
+          <option value="meaning" selected>Meaning (C1 + hops)</option>
           <option value="spectrum">Spectrum (cycle 9)</option>
           <option value="toast">Toast #901131</option>
-          <option value="yolk" selected>Yolk #909011</option>
+          <option value="yolk">Yolk #909011</option>
         </select>
       </label>
       <label class="row">Color
@@ -279,11 +257,11 @@
           <option value="basin">Lock basin</option>
         </select>
       </label>
-      <label class="row"><span>Cell gaps</span><input id="gaps" type="checkbox" /></label>
+      <label class="row"><span>Cell gaps</span><input id="gaps" type="checkbox" checked /></label>
       <label class="row"><span>q labels</span><input id="labels" type="checkbox" /></label>
-      <label class="row"><span>Hide empty slots</span><input id="hide-empty" type="checkbox" checked /></label>
-      <label class="row"><span>Hide solid squares</span><input id="hide-solid" type="checkbox" checked /></label>
-      <label class="row"><span>Filled frame</span><input id="filled-frame" type="checkbox" checked /></label>
+      <label class="row"><span>Hide empty slots</span><input id="hide-empty" type="checkbox" /></label>
+      <label class="row"><span>Hide solid squares</span><input id="hide-solid" type="checkbox" /></label>
+      <label class="row"><span>Filled frame</span><input id="filled-frame" type="checkbox" /></label>
       <div class="legend">
         <span class="swatch-code"><i class="swatch sq0"></i>sq0</span>
         <span class="swatch-code"><i class="swatch sq1"></i>sq1</span>
@@ -308,6 +286,7 @@
     </aside>
     <div class="stage">
       <canvas id="page" aria-label="Four-symbol rectangles, one per Q post"></canvas>
+      <div id="field-spacer" hidden></div>
     </div>
     <aside class="right">
       <div class="right-tabs" role="tablist" aria-label="Right inspector">
@@ -392,7 +371,7 @@
   <script src="js/quads.js?v=20260923v31"></script>
   <script src="js/layouts.js?v=20260923v31"></script>
   <script src="js/layers.js?v=20260923v31"></script>
-  <script src="js/primes.js?v=20261009p1"></script>
-  <script src="js/page.js?v=20261009p1"></script>
+  <script src="js/primes.js?v=20261009pc1"></script>
+  <script src="js/page.js?v=20261009pc2"></script>
 </body>
 </html>

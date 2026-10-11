@@ -659,6 +659,7 @@ def main() -> int:
     check("globalThis" in js and "QuadPrimes" in js, "QuadPrimes export")
     check("CHAIN_HEADS" in js, "chain heads in JS")
     check("function piece" in js, "piece() in JS")
+    check("function packField" in js, "packField() in JS")
 
     node = _node_compare()
     if node is not None:
@@ -681,7 +682,7 @@ def _node_compare() -> tuple[bool, str] | None:
             cwd=str(ROOT),
             capture_output=True,
             text=True,
-            timeout=20,
+            timeout=60,
         )
     except FileNotFoundError:
         return None
@@ -703,6 +704,24 @@ def _node_compare() -> tuple[bool, str] | None:
         return False, f"JS/Py 492 mismatch py={py492} js={js492}"
     if data["nPrimes"] != 663 or data["nSG"] != 115:
         return False, f"JS census {data}"
+    field = data.get("field") or {}
+    if field.get("cells") != 48109 or field.get("w") != 295 or field.get("h") != 303:
+        return False, f"field shelf {field}"
+    if field.get("self") != 4966 or field.get("unit") != 4965 or field.get("ghost") != 43:
+        return False, f"field roles {field}"
+    if field.get("dup"):
+        return False, f"field cells share xy {field.get('dup')}"
+    ones = field.get("ones") or []
+    if len(ones) != 2 or ones[0].get("x") == ones[1].get("x") and ones[0].get("y") == ones[1].get("y"):
+        return False, f"491/492 ones not distinct {ones}"
+    homes = {o.get("home") for o in ones}
+    if homes != {491, 492}:
+        return False, f"unit homes {homes}"
+    if not field.get("has983"):
+        return False, "491 missing 983"
+    want492 = [1, 2, 3, 4, 6, 12, 41, 82, 123, 164, 246, 397, 492]
+    if field.get("q492") != want492:
+        return False, f"492 q-set {field.get('q492')}"
     return True, "node matches"
 
 
@@ -716,11 +735,41 @@ vm.runInContext(fs.readFileSync("js/primes.js", "utf8"), ctx);
 const Q = ctx.QuadPrimes;
 const p491 = Q.piece(491, { unit: true, ordinal: true, sg: "partner", orient: false });
 const p492 = Q.piece(492, { unit: true, pairs: true, ordinal: true, orient: false });
+const flags = { unit: true, ordinal: true, pairs: true, omega: true, sg: "partner", orient: true };
+const homes = [];
+for (let i = 1; i <= 4966; i++) homes.push(i);
+const packed = Q.packField(homes, flags);
+const seen = new Set();
+let dup = 0, self = 0, unit = 0, ghost = 0;
+for (let i = 0; i < packed.cells.length; i++) {
+  const c = packed.cells[i];
+  const k = c.x + "," + c.y;
+  if (seen.has(k)) dup++;
+  seen.add(k);
+  if (c.role === "self") self++;
+  if (c.role === "unit") unit++;
+  if (c.ghost) ghost++;
+}
+const pair = Q.packField([491, 492], flags);
+const ones = pair.cells.filter(c => c.q === 1).map(c => ({ x: c.x, y: c.y, home: c.home }));
+const q492f = pair.cells.filter(c => c.home === 492).map(c => c.q).sort((a, b) => a - b);
 const out = {
   nPrimes: Q.primes.length,
   nSG: Q.sophie.length,
   c491: p491.cells.map(c => [c.q, c.x, c.y]),
   q492: p492.cells.map(c => c.q),
+  field: {
+    cells: packed.cells.length,
+    w: packed.bbox.w,
+    h: packed.bbox.h,
+    self: self,
+    unit: unit,
+    ghost: ghost,
+    dup: dup,
+    ones: ones,
+    has983: pair.cells.some(c => c.home === 491 && c.q === 983),
+    q492: q492f,
+  },
 };
 process.stdout.write(JSON.stringify(out));
 """

@@ -710,16 +710,28 @@ body[data-view="plates"][data-layer="peel"] .plates {
   margin: 0 0 6px;
 }
 
-body[data-puzzle="off"] .puzzle-only { display: none; }
+body[data-puzzle="off"] .puzzle-only,
+body[data-puzzle="off"] .puzzle-field-only,
+body[data-puzzle="focus"] .puzzle-field-only { display: none; }
 body[data-puzzle="focus"] select:disabled,
-body[data-puzzle="focus"] input:disabled {
+body[data-puzzle="focus"] input:disabled,
+body[data-puzzle="field"] select:disabled,
+body[data-puzzle="field"] input:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
-#puzzle-play[aria-pressed="true"] {
-  border-color: var(--gold);
-  color: var(--gold-2);
-  background: var(--elev-2);
+body[data-puzzle="field"][data-pzscale="read"] .stage { overflow: auto; }
+#field-spacer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+body[data-puzzle="field"][data-pzscale="read"] #page {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 1;
 }
 #piece-list {
   display: flex;
